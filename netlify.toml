@@ -1,0 +1,9 @@
+[build]
+  # não roda build (só serve os arquivos que já estão no repo)
+  command = ""
+  publish = "."
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
