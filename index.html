@@ -80,27 +80,31 @@
 </head>
 <body>
 <header style="
-  display:flex;
-  align-items:center;
-  gap:18px;
-  padding:20px 24px;
-  border-bottom:1px solid #e2e8f0;
-  background:#fff;
-  flex-wrap:wrap;
+  position:sticky; top:0; z-index:10;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#fff;
 ">
-  <!-- Logo -->
-  <img src="assets/logo.png" alt="AmazonSafe logo" style="height:60px" />
+  <!-- Marca (logo + texto) -->
+  <div style="display:flex; align-items:center; gap:14px; min-width:260px">
+    <img src="assets/logo.svg" alt="AmazonSafe logo" style="height:52px" />
+    <div>
+      <div style="font-size:18px; font-weight:800; color:#0f172a">AmazonSafe</div>
+      <div style="font-size:14px; color:#475569; margin-top:2px">
+        Monitoramento Ambiental Inteligente
+      </div>
+    </div>
+    <span class="badge" style="margin-left:8px">API: amazonsafe-api.onrender.com</span>
+  </div>
 
-  <!-- Texto -->
-  <div style="flex:1; min-width:240px">
-    <div style="font-size:22px; font-weight:700; color:#0f172a">
-      Monitoramento Ambiental Inteligente
-    </div>
-    <div style="font-size:16px; color:#475569; margin-top:2px">
-      Dados em tempo real para um futuro seguro
-    </div>
+  <!-- Controles (mantém os mesmos IDs usados no JS) -->
+  <div style="margin-left:auto; display:flex; gap:10px; flex-wrap:wrap">
+    <input id="cidade" placeholder="Cidade (ex: Belém-PA)" />
+    <input id="lat" type="number" step="0.0001" placeholder="Lat" style="width:120px" />
+    <input id="lon" type="number" step="0.0001" placeholder="Lon" style="width:120px" />
+    <button id="btnGo" title="Geocodifica + Análise + Focos">Buscar & Analisar</button>
   </div>
 </header>
+
 
 
 <main class="layout">
