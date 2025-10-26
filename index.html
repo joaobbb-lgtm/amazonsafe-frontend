@@ -79,16 +79,29 @@
   </style>
 </head>
 <body>
-<header>
-  <strong style="font-size:18px;color:var(--c2)">AmazonSafe – Mapa</strong>
-  <span class="badge">API: amazonsafe-api.onrender.com</span>
-  <div style="margin-left:auto; display:flex; gap:10px; flex-wrap:wrap">
-    <input id="cidade" placeholder="Cidade (ex: Belém-PA)" />
-    <input id="lat" type="number" step="0.0001" placeholder="Lat" style="width:120px" />
-    <input id="lon" type="number" step="0.0001" placeholder="Lon" style="width:120px" />
-    <button id="btnGo" title="Geocodifica + Análise + Focos">Buscar & Analisar</button>
+<header style="
+  display:flex;
+  align-items:center;
+  gap:18px;
+  padding:20px 24px;
+  border-bottom:1px solid #e2e8f0;
+  background:#fff;
+  flex-wrap:wrap;
+">
+  <!-- Logo -->
+  <img src="assets/logo.png" alt="AmazonSafe logo" style="height:60px" />
+
+  <!-- Texto -->
+  <div style="flex:1; min-width:240px">
+    <div style="font-size:22px; font-weight:700; color:#0f172a">
+      Monitoramento Ambiental Inteligente
+    </div>
+    <div style="font-size:16px; color:#475569; margin-top:2px">
+      Dados em tempo real para um futuro seguro
+    </div>
   </div>
 </header>
+
 
 <main class="layout">
   <!-- Coluna esquerda: MAPA -->
