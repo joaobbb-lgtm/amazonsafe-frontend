@@ -21,6 +21,12 @@
     button.secondary { background:#475569; }
     .badge { padding:2px 8px; border-radius:999px; background:#eef; }
     .card { padding:10px; border:1px solid #eee; border-radius:12px; }
+
+    /* Extras de UX */
+    .muted { opacity: .7 }
+    .loading { cursor: progress; opacity: .7 }
+    .error { color:#b91c1c }
+    .ok { color:#065F46 }
   </style>
 </head>
 <body>
@@ -57,92 +63,142 @@
   crossorigin=""
 ></script>
 <script>
-const API = "https://amazonsafe-api.onrender.com";
-const map = L.map('map').setView([-3.1, -60.0], 5);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 18, attribution: '&copy; OpenStreetMap'
-}).addTo(map);
+  const API = "https://amazonsafe-api.onrender.com";
 
-let focosLayer = L.layerGroup().addTo(map);
+  const map = L.map('map').setView([-3.1, -60.0], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
 
-async function fetchJson(url, opts) {
-  const r = await fetch(url, opts);
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
-}
+  let focosLayer = L.layerGroup().addTo(map);
 
-// Carrega focos do INPE e plota no mapa
-async function carregarFocos(params) {
-  focosLayer.clearLayers();
-  const qs = new URLSearchParams(params).toString();
-  const data = await fetchJson(`${API}/api/inpe/focos?${qs}`);
-  const focos = (data.features && data.features.focos) || [];
-  focos.forEach(f => {
-    const m = L.circleMarker([f.latitude, f.longitude], {
-      radius: Math.max(3, Math.min(10, (f.frp || 1) / 10)),
-      color: '#ef4444', weight: 1, fillOpacity: 0.6
-    }).bindPopup(`
-      <div><strong>${f.municipio || ''} - ${f.uf || ''}</strong></div>
-      <div>Satélite: ${f.satelite || '-'}</div>
-      <div>FRP: ${f.frp ?? '-'}</div>
-      <div>Bioma: ${f.bioma || '-'}</div>
-    `);
-    m.addTo(focosLayer);
-  });
-  if (focos.length) {
-    const bounds = L.latLngBounds(focos.map(f => [f.latitude, f.longitude]));
-    map.fitBounds(bounds.pad(0.2));
+  const elCidade = document.querySelector('#cidade');
+  const elLat = document.querySelector('#lat');
+  const elLon = document.querySelector('#lon');
+  const btnBuscar = document.querySelector('#btnBuscar');
+  const btnAtualizar = document.querySelector('#btnAtualizar');
+  const resumoBox = document.querySelector('#resumoBox');
+  const alertasBox = document.querySelector('#alertasBox');
+
+  function setLoading(on) {
+    [btnBuscar, btnAtualizar].forEach(b => b.disabled = on);
+    document.body.classList.toggle('loading', on);
   }
-  return { count: focos.length };
-}
 
-// Busca consolidada (chuva/ar/focos) para a área/cidade
-async function buscarDados() {
-  const cidade = document.querySelector('#cidade').value.trim();
-  const lat = parseFloat(document.querySelector('#lat').value);
-  const lon = parseFloat(document.querySelector('#lon').value);
+  async function fetchJson(url, opts) {
+    const r = await fetch(url, opts);
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      throw new Error(`HTTP ${r.status} ${r.statusText} – ${text?.slice(0,200)}`);
+    }
+    return r.json();
+  }
 
-  const params = cidade ? { cidade } : { lat, lon };
-  const res = await carregarFocos({ scope: "diario", region: "Brasil", limit: 300, ...params });
+  function getParamsFromUI() {
+    const cidade = elCidade.value.trim();
+    const lat = parseFloat(elLat.value);
+    const lon = parseFloat(elLon.value);
+    if (cidade) return { cidade };
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      throw new Error("Informe a cidade **ou** latitude/longitude válidos.");
+    }
+    return { lat, lon };
+  }
 
-  document.querySelector('#resumoBox').textContent =
-    `Focos plotados: ${res.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(params)}`;
-}
+  // Carrega focos do INPE e plota no mapa
+  async function carregarFocos(params) {
+    focosLayer.clearLayers();
+    const qs = new URLSearchParams({ scope: "diario", region: "Brasil", limit: 300, ...params }).toString();
+    const data = await fetchJson(`${API}/api/inpe/focos?${qs}`);
+    const focos = (data.features && data.features.focos) || [];
 
-// Dispara o pipeline e salva no NDJSON:/banco
-async function atualizarAlerta() {
-  const cidade = document.querySelector('#cidade').value.trim();
-  const lat = parseFloat(document.querySelector('#lat').value);
-  const lon = parseFloat(document.querySelector('#lon').value);
-  const body = cidade ? { cidade } : { lat, lon };
+    focos.forEach(f => {
+      const m = L.circleMarker([f.latitude, f.longitude], {
+        radius: Math.max(3, Math.min(10, (f.frp || 1) / 10)),
+        color: '#ef4444', weight: 1, fillOpacity: 0.6
+      }).bindPopup(`
+        <div><strong>${f.municipio || ''} - ${f.uf || ''}</strong></div>
+        <div>Satélite: ${f.satelite || '-'}</div>
+        <div>FRP: ${f.frp ?? '-'}</div>
+        <div>Bioma: ${f.bioma || '-'}</div>
+      `);
+      m.addTo(focosLayer);
+    });
 
-  const data = await fetchJson(`${API}/api/alertas_update`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...body,
-      scope: "diario",
-      region: "Brasil",
-      raio_km: 150,
-      air_radius_m: 10000,
-      weather_provider: "open-meteo"
-    })
-  });
+    if (focos.length) {
+      const bounds = L.latLngBounds(focos.map(f => [f.latitude, f.longitude]));
+      map.fitBounds(bounds.pad(0.2));
+    }
+    return { count: focos.length, params };
+  }
 
-  alert("Alerta processado: nível " + (data?.score?.level || 'n/a'));
-  await carregarUltimosAlertas();
-}
+  // Busca consolidada (chuva/ar/focos) para a área/cidade
+  async function buscarDados() {
+    setLoading(true);
+    resumoBox.className = '';
+    try {
+      const params = getParamsFromUI();
+      resumoBox.textContent = "Carregando focos do INPE...";
+      const res = await carregarFocos(params);
+      resumoBox.className = 'ok';
+      resumoBox.textContent =
+        `Focos plotados: ${res.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(res.params)}`;
+    } catch (err) {
+      resumoBox.className = 'error';
+      resumoBox.textContent = `Erro ao buscar dados: ${err.message}`;
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-async function carregarUltimosAlertas() {
-  const data = await fetchJson(`${API}/api/alertas?limit=5`);
-  document.querySelector('#alertasBox').textContent = JSON.stringify(data, null, 2);
-}
+  // Dispara o pipeline e salva no NDJSON:/banco
+  async function atualizarAlerta() {
+    setLoading(true);
+    try {
+      const body = {
+        ...getParamsFromUI(),
+        scope: "diario",
+        region: "Brasil",
+        raio_km: 150,
+        air_radius_m: 10000,
+        weather_provider: "open-meteo"
+      };
 
-document.querySelector('#btnBuscar').addEventListener('click', buscarDados);
-document.querySelector('#btnAtualizar').addEventListener('click', atualizarAlerta);
+      resumoBox.className = 'muted';
+      resumoBox.textContent = "Processando alerta (pipeline /api/alertas_update)...";
+      const data = await fetchJson(`${API}/api/alertas_update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
 
-// Inicial
-carregarUltimosAlertas();
+      alert("Alerta processado: nível " + (data?.score?.level || 'n/a'));
+      await carregarUltimosAlertas();
+    } catch (err) {
+      resumoBox.className = 'error';
+      resumoBox.textContent = `Erro ao atualizar alerta: ${err.message}`;
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function carregarUltimosAlertas() {
+    try {
+      alertasBox.textContent = "Carregando últimos alertas...";
+      const data = await fetchJson(`${API}/api/alertas?limit=5`);
+      alertasBox.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      alertasBox.textContent = `Erro ao carregar alertas: ${err.message}`;
+    }
+  }
+
+  btnBuscar.addEventListener('click', buscarDados);
+  btnAtualizar.addEventListener('click', atualizarAlerta);
+
+  // Inicial
+  carregarUltimosAlertas();
 </script>
 </body>
 </html>
