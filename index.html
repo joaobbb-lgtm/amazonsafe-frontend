@@ -11,34 +11,56 @@
     crossorigin=""
   />
   <style>
-    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
-    header { padding: 10px 14px; border-bottom: 1px solid #eee; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    #map { height: calc(100dvh - 190px); }
-    .panel { padding: 10px 14px; border-top:1px solid #eee; display:grid; gap:10px; }
+    :root{
+      --c1:#0d9488; /* teal */
+      --c2:#0f172a; /* slate-900 */
+      --bg:#f8fafc; /* slate-50 */
+      --card:#ffffff;
+      --muted:#64748b;
+      --ok:#065f46;
+      --err:#b91c1c;
+    }
+    *{box-sizing:border-box}
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:var(--bg); color:#0f172a;}
+    header {
+      position:sticky; top:0; z-index:10;
+      padding: 10px 14px; border-bottom: 1px solid #e2e8f0;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:#fff;
+    }
+    #map { height: calc(100dvh - 210px); }
+    .panel { padding: 12px 14px; border-top:1px solid #e2e8f0; display:grid; gap:12px; background:var(--bg);}
     .row { display:flex; gap:10px; flex-wrap:wrap; }
-    input, select, button { padding:8px 10px; border:1px solid #ccc; border-radius:8px; }
-    button { background:#0d9488; color:#fff; border:none; cursor:pointer; }
-    button.secondary { background:#475569; }
-    .badge { padding:2px 8px; border-radius:999px; background:#eef; }
-    .card { padding:10px; border:1px solid #eee; border-radius:12px; }
-
-    /* Extras de UX */
-    .muted { opacity: .7 }
-    .loading { cursor: progress; opacity: .7 }
-    .error { color:#b91c1c }
-    .ok { color:#065F46 }
+    input, button {
+      padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; background:#fff;
+    }
+    input{min-width: 160px;}
+    button { background:var(--c1); color:#fff; border:none; cursor:pointer; font-weight:600; }
+    button:disabled{opacity:.6; cursor:progress}
+    .badge { padding:4px 10px; border-radius:999px; background:#eef; font-size:12px; color:#334155; }
+    .card { padding:14px; border:1px solid #e2e8f0; border-radius:14px; background:var(--card); box-shadow:0 1px 2px rgba(2,6,23,.04);}
+    .muted { color:var(--muted) }
+    .loading { cursor: progress; opacity: .85 }
+    .error { color:var(--err) }
+    .ok { color:var(--ok) }
+    .pill {
+      display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px;
+      font-weight:700; letter-spacing:.2px;
+    }
+    .pill.green{ background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0 }
+    .pill.yellow{ background:#fffbeb; color:#92400e; border:1px solid #fde68a }
+    .pill.red{ background:#fef2f2; color:#991b1b; border:1px solid #fecaca }
+    .legend{font-size:12px;color:#334155}
   </style>
 </head>
 <body>
 <header>
-  <strong>AmazonSafe – Mapa</strong>
+  <strong style="font-size:18px;color:var(--c2)">AmazonSafe – Mapa</strong>
   <span class="badge">API: amazonsafe-api.onrender.com</span>
-  <div class="row">
+  <div class="row" style="margin-left:auto">
     <input id="cidade" placeholder="Cidade (ex: Belém-PA)" />
     <input id="lat" type="number" step="0.0001" placeholder="Lat" style="width:120px" />
     <input id="lon" type="number" step="0.0001" placeholder="Lon" style="width:120px" />
-    <button id="btnBuscar">Buscar dados</button>
-    <button id="btnAtualizar" class="secondary" title="Executa /api/alertas_update">Atualizar/Analisar</button>
+    <button id="btnGo" title="Geocodifica + Análise + Focos">Buscar & Analisar</button>
   </div>
 </header>
 
@@ -47,12 +69,19 @@
 <section class="panel">
   <div class="row">
     <div class="card" style="flex:1">
-      <div><strong>Últimos alertas</strong></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <strong>Últimos alertas</strong>
+        <span class="legend">• círculo menor = foco fraco • maior = foco forte</span>
+      </div>
       <pre id="alertasBox" style="white-space:pre-wrap; font-size:12px; margin:8px 0 0"></pre>
     </div>
     <div class="card" style="flex:1">
-      <div><strong>Resumo da busca</strong></div>
-      <pre id="resumoBox" style="white-space:pre-wrap; font-size:12px; margin:8px 0 0"></pre>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <strong>Resultado da análise</strong>
+        <span id="nivelPill" class="pill green" style="display:none">—</span>
+      </div>
+      <div id="metaBox" class="muted" style="font-size:12px;margin-top:6px"></div>
+      <pre id="resumoBox" style="white-space:pre-wrap; font-size:12px; margin:10px 0 0"></pre>
     </div>
   </div>
 </section>
@@ -75,14 +104,23 @@
   const elCidade = document.querySelector('#cidade');
   const elLat = document.querySelector('#lat');
   const elLon = document.querySelector('#lon');
-  const btnBuscar = document.querySelector('#btnBuscar');
-  const btnAtualizar = document.querySelector('#btnAtualizar');
+  const btnGo = document.querySelector('#btnGo');
   const resumoBox = document.querySelector('#resumoBox');
   const alertasBox = document.querySelector('#alertasBox');
+  const metaBox = document.querySelector('#metaBox');
+  const nivelPill = document.querySelector('#nivelPill');
 
   function setLoading(on) {
-    [btnBuscar, btnAtualizar].forEach(b => b.disabled = on);
+    [btnGo].forEach(b => b.disabled = on);
     document.body.classList.toggle('loading', on);
+  }
+
+  function pill(level){
+    const lv = (level||'').toLowerCase();
+    nivelPill.style.display = 'inline-flex';
+    nivelPill.className = 'pill ' + (lv.startsWith('ver') ? 'green' : lv.startsWith('ama') ? 'yellow' : lv.startsWith('verme') ? 'red' : 'green');
+    const emoji = lv.startsWith('ver') ? '🟢' : lv.startsWith('ama') ? '🟡' : lv.startsWith('verme') ? '🔴' : '⚪';
+    nivelPill.textContent = `${emoji} ${level?.toUpperCase?.() || 'N/A'}`;
   }
 
   async function fetchJson(url, opts) {
@@ -105,7 +143,15 @@
     return { lat, lon };
   }
 
-  // Carrega focos do INPE e plota no mapa
+  function extractCoords(resp, fallback){
+    // tenta pegar do padrão que você já usa no backend (/api/alertas_update)
+    if (resp?.params?.lat && resp?.params?.lon) return { lat: resp.params.lat, lon: resp.params.lon };
+    if (resp?.lat && resp?.lon) return { lat: resp.lat, lon: resp.lon };
+    if (resp?.resolve?.lat && resp?.resolve?.lon) return { lat: resp.resolve.lat, lon: resp.resolve.lon };
+    return fallback;
+  }
+
+  // Plota focos do INPE
   async function carregarFocos(params) {
     focosLayer.clearLayers();
     const qs = new URLSearchParams({ scope: "diario", region: "Brasil", limit: 300, ...params }).toString();
@@ -114,8 +160,8 @@
 
     focos.forEach(f => {
       const m = L.circleMarker([f.latitude, f.longitude], {
-        radius: Math.max(3, Math.min(10, (f.frp || 1) / 10)),
-        color: '#ef4444', weight: 1, fillOpacity: 0.6
+        radius: Math.max(3, Math.min(12, (f.frp || 1) / 8)),
+        color: '#ef4444', weight: 1, fillOpacity: 0.65
       }).bindPopup(`
         <div><strong>${f.municipio || ''} - ${f.uf || ''}</strong></div>
         <div>Satélite: ${f.satelite || '-'}</div>
@@ -132,52 +178,50 @@
     return { count: focos.length, params };
   }
 
-  // Busca consolidada (chuva/ar/focos) para a área/cidade
-  async function buscarDados() {
+  // Fluxo único: geocodifica + roda análise + plota focos
+  async function executar() {
     setLoading(true);
     resumoBox.className = '';
+    metaBox.textContent = '';
     try {
-      const params = getParamsFromUI();
-      resumoBox.textContent = "Carregando focos do INPE...";
-      const res = await carregarFocos(params);
-      resumoBox.className = 'ok';
-      resumoBox.textContent =
-        `Focos plotados: ${res.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(res.params)}`;
-    } catch (err) {
-      resumoBox.className = 'error';
-      resumoBox.textContent = `Erro ao buscar dados: ${err.message}`;
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
+      const uiParams = getParamsFromUI();
 
-  // Dispara o pipeline e salva no NDJSON:/banco
-  async function atualizarAlerta() {
-    setLoading(true);
-    try {
-      const body = {
-        ...getParamsFromUI(),
-        scope: "diario",
-        region: "Brasil",
-        raio_km: 150,
-        air_radius_m: 10000,
-        weather_provider: "open-meteo"
-      };
-
-      resumoBox.className = 'muted';
-      resumoBox.textContent = "Processando alerta (pipeline /api/alertas_update)...";
+      // 1) roda a análise (usa sua própria geocodificação do backend)
+      resumoBox.textContent = "Processando análise...";
       const data = await fetchJson(`${API}/api/alertas_update`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        body: JSON.stringify({
+          ...uiParams,
+          scope: "diario",
+          region: "Brasil",
+          raio_km: 150,
+          air_radius_m: 10000,
+          weather_provider: "open-meteo"
+        })
       });
 
-      alert("Alerta processado: nível " + (data?.score?.level || 'n/a'));
+      // badge de nível
+      pill(data?.score?.level || 'n/a');
+
+      // meta: cidade resolvida / timestamp
+      const resolved = data?.params?.resolve?.display_name || data?.params?.cidade || elCidade.value.trim();
+      const when = data?.score?.alert_obs?.meta?.observed_at || data?.observed_at || '';
+      metaBox.innerHTML = `Local: <strong>${resolved || '—'}</strong> • Última observação: <strong>${when || '—'}</strong>`;
+
+      // 2) pega coords retornadas pela API (ou usa UI) e plota focos
+      const coords = extractCoords(data, uiParams);
+      const res = await carregarFocos(coords);
+
+      resumoBox.className = 'ok';
+      resumoBox.textContent =
+        `Focos plotados: ${res.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords)}`;
+
+      // 3) atualiza “Últimos alertas”
       await carregarUltimosAlertas();
     } catch (err) {
       resumoBox.className = 'error';
-      resumoBox.textContent = `Erro ao atualizar alerta: ${err.message}`;
+      resumoBox.textContent = `Erro: ${err.message}`;
       console.error(err);
     } finally {
       setLoading(false);
@@ -194,8 +238,9 @@
     }
   }
 
-  btnBuscar.addEventListener('click', buscarDados);
-  btnAtualizar.addEventListener('click', atualizarAlerta);
+  btnGo.addEventListener('click', executar);
+  // Enter no campo cidade dispara a busca
+  elCidade.addEventListener('keydown', (e)=>{ if(e.key==='Enter') executar(); });
 
   // Inicial
   carregarUltimosAlertas();
