@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>AmazonSafe – Mapa e Alertas</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+    header { padding: 10px 14px; border-bottom: 1px solid #eee; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    #map { height: calc(100dvh - 190px); }
+    .panel { padding: 10px 14px; border-top:1px solid #eee; display:grid; gap:10px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    input, select, button { padding:8px 10px; border:1px solid #ccc; border-radius:8px; }
+    button { background:#0d9488; color:#fff; border:none; cursor:pointer; }
+    button.secondary { background:#475569; }
+    .badge { padding:2px 8px; border-radius:999px; background:#eef; }
+    .card { padding:10px; border:1px solid #eee; border-radius:12px; }
+  </style>
+</head>
+<body>
+<header>
+  <strong>AmazonSafe – Mapa</strong>
+  <span class="badge">API: amazonsafe-api.onrender.com</span>
+  <div class="row">
+    <input id="cidade" placeholder="Cidade (ex: Belém-PA)" />
+    <input id="lat" type="number" step="0.0001" placeholder="Lat" style="width:120px" />
+    <input id="lon" type="number" step="0.0001" placeholder="Lon" style="width:120px" />
+    <button id="btnBuscar">Buscar dados</button>
+    <button id="btnAtualizar" class="secondary" title="Executa /api/alertas_update">Atualizar/Analisar</button>
+  </div>
+</header>
+
+<div id="map"></div>
+
+<section class="panel">
+  <div class="row">
+    <div class="card" style="flex:1">
+      <div><strong>Últimos alertas</strong></div>
+      <pre id="alertasBox" style="white-space:pre-wrap; font-size:12px; margin:8px 0 0"></pre>
+    </div>
+    <div class="card" style="flex:1">
+      <div><strong>Resumo da busca</strong></div>
+      <pre id="resumoBox" style="white-space:pre-wrap; font-size:12px; margin:8px 0 0"></pre>
+    </div>
+  </div>
+</section>
+
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+  crossorigin=""
+></script>
+<script>
+const API = "https://amazonsafe-api.onrender.com";
+const map = L.map('map').setView([-3.1, -60.0], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18, attribution: '&copy; OpenStreetMap'
+}).addTo(map);
+
+let focosLayer = L.layerGroup().addTo(map);
+
+async function fetchJson(url, opts) {
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+// Carrega focos do INPE e plota no mapa
+async function carregarFocos(params) {
+  focosLayer.clearLayers();
+  const qs = new URLSearchParams(params).toString();
+  const data = await fetchJson(`${API}/api/inpe/focos?${qs}`);
+  const focos = (data.features && data.features.focos) || [];
+  focos.forEach(f => {
+    const m = L.circleMarker([f.latitude, f.longitude], {
+      radius: Math.max(3, Math.min(10, (f.frp || 1) / 10)),
+      color: '#ef4444', weight: 1, fillOpacity: 0.6
+    }).bindPopup(`
+      <div><strong>${f.municipio || ''} - ${f.uf || ''}</strong></div>
+      <div>Satélite: ${f.satelite || '-'}</div>
+      <div>FRP: ${f.frp ?? '-'}</div>
+      <div>Bioma: ${f.bioma || '-'}</div>
+    `);
+    m.addTo(focosLayer);
+  });
+  if (focos.length) {
+    const bounds = L.latLngBounds(focos.map(f => [f.latitude, f.longitude]));
+    map.fitBounds(bounds.pad(0.2));
+  }
+  return { count: focos.length };
+}
+
+// Busca consolidada (chuva/ar/focos) para a área/cidade
+async function buscarDados() {
+  const cidade = document.querySelector('#cidade').value.trim();
+  const lat = parseFloat(document.querySelector('#lat').value);
+  const lon = parseFloat(document.querySelector('#lon').value);
+
+  const params = cidade ? { cidade } : { lat, lon };
+  const res = await carregarFocos({ scope: "diario", region: "Brasil", limit: 300, ...params });
+
+  document.querySelector('#resumoBox').textContent =
+    `Focos plotados: ${res.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(params)}`;
+}
+
+// Dispara o pipeline e salva no NDJSON:/banco
+async function atualizarAlerta() {
+  const cidade = document.querySelector('#cidade').value.trim();
+  const lat = parseFloat(document.querySelector('#lat').value);
+  const lon = parseFloat(document.querySelector('#lon').value);
+  const body = cidade ? { cidade } : { lat, lon };
+
+  const data = await fetchJson(`${API}/api/alertas_update`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      ...body,
+      scope: "diario",
+      region: "Brasil",
+      raio_km: 150,
+      air_radius_m: 10000,
+      weather_provider: "open-meteo"
+    })
+  });
+
+  alert("Alerta processado: nível " + (data?.score?.level || 'n/a'));
+  await carregarUltimosAlertas();
+}
+
+async function carregarUltimosAlertas() {
+  const data = await fetchJson(`${API}/api/alertas?limit=5`);
+  document.querySelector('#alertasBox').textContent = JSON.stringify(data, null, 2);
+}
+
+document.querySelector('#btnBuscar').addEventListener('click', buscarDados);
+document.querySelector('#btnAtualizar').addEventListener('click', atualizarAlerta);
+
+// Inicial
+carregarUltimosAlertas();
+</script>
+</body>
+</html>
