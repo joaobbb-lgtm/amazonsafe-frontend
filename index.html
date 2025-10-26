@@ -81,27 +81,33 @@
 <body>
 <header style="
   position:sticky; top:0; z-index:10;
-  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
-  padding:16px 20px; border-bottom:1px solid #e2e8f0; background:#fff;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 24px; border-bottom:1px solid #e2e8f0; background:#fff;
+  flex-wrap:wrap;
 ">
-  <!-- Marca (logo + texto) -->
-  <div style="display:flex; align-items:center; gap:14px; min-width:260px">
-    <img src="assets/logo.svg" alt="AmazonSafe logo" style="height:126px" />
+  <!-- Logo + Título -->
+  <div style="display:flex; align-items:center; gap:16px; min-width:320px">
+    <img src="assets/logo1.svg" alt="AmazonSafe Logo" 
+         style="height:80px; width:auto; object-fit:contain;" />
     <div>
-      <div style="font-size:18px; font-weight:800; color:#0f172a">AmazonSafe</div>
-      <div style="font-size:14px; color:#475569; margin-top:2px">
+      <div style="font-size:22px; font-weight:800; color:#0f172a">
+        Amazon<span style="color:#65a30d">Safe</span>
+      </div>
+      <div style="font-size:15px; font-weight:600; color:#334155; margin-top:2px">
         Monitoramento Ambiental Inteligente
       </div>
+      <div style="font-size:13px; color:#64748b;">
+        Dados em tempo real para um futuro seguro
+      </div>
     </div>
-    <span class="badge" style="margin-left:8px">API: amazonsafe-api.onrender.com</span>
   </div>
 
-  <!-- Controles (mantém os mesmos IDs usados no JS) -->
-  <div style="margin-left:auto; display:flex; gap:10px; flex-wrap:wrap">
+  <!-- Inputs e botão -->
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
     <input id="cidade" placeholder="Cidade (ex: Belém-PA)" />
     <input id="lat" type="number" step="0.0001" placeholder="Lat" style="width:120px" />
     <input id="lon" type="number" step="0.0001" placeholder="Lon" style="width:120px" />
-    <button id="btnGo" title="Geocodifica + Análise + Focos">Buscar & Analisar</button>
+    <button id="btnGo">Buscar & Analisar</button>
   </div>
 </header>
 
