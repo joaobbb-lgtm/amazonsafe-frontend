@@ -28,7 +28,7 @@
 
   <style>
     #map { height: 64vh; min-height: 380px; }
-    .pill { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
+    .pill { display:inline-flex; align-items:center; padding:0.125rem 0.625rem; border-radius:9999px; font-size:0.75rem; font-weight:600; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -36,7 +36,9 @@
   <header class="sticky top-0 z-20 bg-white border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
       <div class="flex items-center gap-3 min-w-[280px]">
-        <!-- logo (troque por assets/logo.png se quiser) -->
+        <!-- ⚠️ LOGO: se a sua logo foi alterada sem querer, troque o bloco abaixo por:
+             <img src="assets/logo.png" alt="AmazonSafe" class="h-10 w-10 rounded-full" />
+             e mantenha o restante igual -->
         <div class="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-2xl">🌿</div>
         <div>
           <div class="text-xl font-extrabold">
@@ -65,8 +67,8 @@
   <main class="max-w-7xl mx-auto px-3 lg:px-4">
     <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
       <!-- Água -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div class="border-b-4 border-emerald-500 rounded-t-xl"></div>
+      <div id="kpiAgua" class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div id="kpiAguaTop" class="border-b-4 border-emerald-500 rounded-t-xl"></div>
         <div class="p-4">
           <p class="text-xs uppercase text-gray-500 font-semibold">Água (chuva/cheia)</p>
           <p id="aguaTitulo" class="text-3xl font-bold text-emerald-800 mt-1">—</p>
@@ -76,8 +78,8 @@
       </div>
 
       <!-- Ar -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div class="border-b-4 border-sky-500 rounded-t-xl"></div>
+      <div id="kpiAr" class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div id="kpiArTop" class="border-b-4 border-sky-500 rounded-t-xl"></div>
         <div class="p-4">
           <p class="text-xs uppercase text-gray-500 font-semibold">Qualidade do Ar</p>
           <p id="arTitulo" class="text-3xl font-bold text-sky-800 mt-1">—</p>
@@ -87,8 +89,8 @@
       </div>
 
       <!-- Desmatamento (proxy) -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div class="border-b-4 border-emerald-700 rounded-t-xl"></div>
+      <div id="kpiDesm" class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div id="kpiDesmTop" class="border-b-4 border-emerald-700 rounded-t-xl"></div>
         <div class="p-4">
           <p class="text-xs uppercase text-gray-500 font-semibold">Desmatamento (proxy)</p>
           <p id="desmTitulo" class="text-3xl font-bold text-emerald-900 mt-1">—</p>
@@ -98,8 +100,8 @@
       </div>
 
       <!-- Focos -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div class="border-b-4 border-red-600 rounded-t-xl"></div>
+      <div id="kpiFocos" class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div id="kpiFocosTop" class="border-b-4 border-red-600 rounded-t-xl"></div>
         <div class="p-4">
           <p class="text-xs uppercase text-gray-500 font-semibold">Focos de Incêndio</p>
           <p id="focosTitulo" class="text-3xl font-bold text-red-700 mt-1">—</p>
@@ -116,7 +118,7 @@
       </div>
 
       <aside class="flex flex-col gap-4">
-        <!-- Histórico de risco (gráfico simples) -->
+        <!-- Histórico de risco -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
           <h3 class="font-semibold text-emerald-800 mb-2">Histórico de Risco</h3>
           <div class="h-40">
@@ -195,18 +197,22 @@
     const aguaTitulo = document.querySelector('#aguaTitulo');
     const aguaInfo   = document.querySelector('#aguaInfo');
     const aguaBadge  = document.querySelector('#aguaBadge');
+    const kpiAguaTop = document.querySelector('#kpiAguaTop');
 
     const arTitulo = document.querySelector('#arTitulo');
     const arInfo   = document.querySelector('#arInfo');
     const arBadge  = document.querySelector('#arBadge');
+    const kpiArTop = document.querySelector('#kpiArTop');
 
     const desmTitulo = document.querySelector('#desmTitulo');
     const desmInfo   = document.querySelector('#desmInfo');
     const desmBadge  = document.querySelector('#desmBadge');
+    const kpiDesmTop = document.querySelector('#kpiDesmTop');
 
     const focosTitulo = document.querySelector('#focosTitulo');
     const focosInfo   = document.querySelector('#focosInfo');
     const focosBadge  = document.querySelector('#focosBadge');
+    const kpiFocosTop = document.querySelector('#kpiFocosTop');
 
     // Resultado
     const nivelPill = document.querySelector('#nivelPill');
@@ -243,7 +249,7 @@
       }
     });
 
-    // ====== HELPERS (robustos) ==============================================
+    // ====== HELPERS ==========================================================
     const get = (obj, path, def = undefined) => {
       try { return path.split('.').reduce((o,k)=> (o && k in o) ? o[k] : undefined, obj) ?? def; }
       catch { return def; }
@@ -253,13 +259,42 @@
       return Number.isFinite(n) ? n : def;
     };
     const clamp01 = (x) => Math.max(0, Math.min(1, x));
+    const setPill = (el, text, classes) => { el.textContent = text; el.className = `pill ${classes}`; };
 
-    // chuva 24h e índice de cheia vindos do backend novo (score.breakdown)
+    function setNivelPill(level, hexColor) {
+      // Prioriza a cor enviada pelo backend (score.level_color)
+      const lv = (level || '').toLowerCase();
+      if (hexColor && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hexColor)) {
+        nivelPill.style.backgroundColor = hexColor;
+        nivelPill.style.color = '#1f2937'; // cinza-800 para contraste médio
+      } else {
+        nivelPill.style.backgroundColor = '';
+        nivelPill.style.color = '';
+      }
+      let t = '—';
+      if (lv.startsWith('verme')) t = '🔴 VERMELHO';
+      else if (lv.startsWith('ama')) t = '🟡 AMARELO';
+      else if (lv.startsWith('ver')) t = '🟢 VERDE';
+      nivelPill.textContent = t;
+      if (!hexColor) {
+        // classes de fallback se não vier cor
+        nivelPill.className = 'pill ' + (
+          lv.startsWith('verme') ? 'bg-red-100 text-red-700' :
+          lv.startsWith('ama')   ? 'bg-amber-100 text-amber-800' :
+          lv.startsWith('ver')   ? 'bg-emerald-100 text-emerald-700' :
+                                   'bg-gray-100 text-gray-700'
+        );
+      } else {
+        // mantém pill + remove tailwind predefinido
+        nivelPill.className = 'pill';
+      }
+    }
+
+    // chuva 24h e índice de cheia vindos do backend (score.breakdown)
     function getPrecipMM(resp) {
       const fromBreak = num(get(resp, 'score.breakdown.precip_24h_mm'), null);
       if (fromBreak !== null) return fromBreak;
 
-      // compat com modelo antigo (open-meteo)
       const pm = num(get(resp, 'weather.features.precipitation'), null)
               ?? num(get(resp, 'weather.current.precipitation'), null);
       return pm;
@@ -267,33 +302,17 @@
     function getRainIndex(resp) {
       const idx = num(get(resp, 'score.breakdown.precip_index'), null);
       if (idx !== null) return clamp01(idx);
-      // fallback: se não tiver índice, calcula algo simples a partir da chuva
       const mm = getPrecipMM(resp);
       if (!Number.isFinite(mm)) return null;
-      const low  = Math.min(1, mm / 10);   // 10mm+ = 1
-      const high = Math.min(1, Math.max(0, (mm - 70) / 50)); // 70→120mm mapeia 0→1
+      const low  = Math.min(1, mm / 10);
+      const high = Math.min(1, Math.max(0, (mm - 70) / 50));
       return clamp01(Math.max(low, high));
     }
     function rainLevel(rainIdx) {
-      if (!Number.isFinite(rainIdx)) return ['Sem dados', 'bg-gray-100 text-gray-700', '—'];
-      if (rainIdx < 0.33) return ['Baixo', 'bg-emerald-100 text-emerald-700', 'OK'];
-      if (rainIdx < 0.66) return ['Moderado', 'bg-amber-100 text-amber-800', 'Atenção'];
-      return ['Alto', 'bg-red-100 text-red-700', 'Risco de cheia'];
-    }
-
-    function setPill(el, text, classes) {
-      el.textContent = text;
-      el.className = `pill ${classes}`;
-    }
-    function setNivelPill(level) {
-      const lv = (level || '').toLowerCase();
-      let c = 'pill ';
-      let t = '—';
-      if (lv.startsWith('verme')) { c += 'bg-red-100 text-red-700'; t = '🔴 VERMELHO'; }
-      else if (lv.startsWith('ama')) { c += 'bg-amber-100 text-amber-800'; t = '🟡 AMARELO'; }
-      else if (lv.startsWith('ver')) { c += 'bg-emerald-100 text-emerald-700'; t = '🟢 VERDE'; }
-      else { c += 'bg-gray-100 text-gray-700'; }
-      nivelPill.className = c; nivelPill.textContent = t;
+      if (!Number.isFinite(rainIdx)) return ['Sem dados', 'bg-gray-100 text-gray-700', '—', 'border-gray-200'];
+      if (rainIdx < 0.33) return ['Baixo', 'bg-emerald-100 text-emerald-700', 'OK', 'border-emerald-500'];
+      if (rainIdx < 0.66) return ['Moderado', 'bg-amber-100 text-amber-800', 'Atenção', 'border-amber-500'];
+      return ['Alto', 'bg-red-100 text-red-700', 'Risco de cheia', 'border-red-600'];
     }
 
     // ====== FETCH WRAPPER ====================================================
@@ -303,7 +322,7 @@
       return r.json();
     }
 
-    // ====== CARREGAR FOCOS E DEFINIR KPI PROXY DESMATAMENTO =================
+    // ====== FOCOS & KPI DESMATAMENTO ========================================
     async function carregarFocos(params) {
       focosLayer.clearLayers();
       const qs = new URLSearchParams({ scope: "diario", region: "Brasil", limit: 300, ...params }).toString();
@@ -331,19 +350,24 @@
       }
 
       // KPI Focos
-      focosTitulo.textContent = focos.length ? (focos.length >= 150 ? 'Crítico' : focos.length >= 50 ? 'Alerta' : 'Baixo') : 'Baixo';
+      const levelTxt = focos.length ? (focos.length >= 150 ? 'Crítico' : focos.length >= 50 ? 'Alerta' : 'Baixo') : 'Baixo';
+      focosTitulo.textContent = levelTxt;
       focosInfo.textContent   = `Focos: ${focos.length}`;
       const focosClass = (focos.length >= 150) ? 'bg-red-100 text-red-700' : (focos.length >= 50) ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700';
-      setPill(focosBadge, focosTitulo.textContent, focosClass);
+      setPill(focosBadge, levelTxt, focosClass);
+
+      // Borda do card acompanha o nível
+      kpiFocosTop.className = 'border-b-4 rounded-t-xl ' + ((focos.length >= 150) ? 'border-red-600' : (focos.length >= 50) ? 'border-amber-500' : 'border-emerald-500');
 
       // KPI Desmatamento (proxy por FRP médio)
       const avgFRP = frps.length ? (frps.reduce((a,b)=>a+b,0)/frps.length) : 0;
-      let desmLevel = 'Baixo', desmClass = 'bg-emerald-100 text-emerald-700';
-      if (avgFRP >= 7) { desmLevel = 'Alto'; desmClass = 'bg-red-100 text-red-700'; }
-      else if (avgFRP >= 3) { desmLevel = 'Moderado'; desmClass = 'bg-amber-100 text-amber-800'; }
+      let desmLevel = 'Baixo', desmClass = 'bg-emerald-100 text-emerald-700', desmTop = 'border-emerald-700';
+      if (avgFRP >= 7) { desmLevel = 'Alto'; desmClass = 'bg-red-100 text-red-700'; desmTop = 'border-red-600'; }
+      else if (avgFRP >= 3) { desmLevel = 'Moderado'; desmClass = 'bg-amber-100 text-amber-800'; desmTop = 'border-amber-500'; }
       desmTitulo.textContent = desmLevel;
       desmInfo.textContent   = `FRP médio: ${avgFRP ? avgFRP.toFixed(1) : '—'}`;
       setPill(desmBadge, desmLevel, desmClass);
+      kpiDesmTop.className = 'border-b-4 rounded-t-xl ' + desmTop;
 
       return { count: focos.length, avgFRP };
     }
@@ -373,7 +397,6 @@
       if (get(resp, 'params.resolve.lat') && get(resp, 'params.resolve.lon')) return { lat: resp.params.resolve.lat, lon: resp.params.resolve.lon };
       return fallback;
     }
-
     function setLoading(on) { btnGo.disabled = on; }
 
     async function executar() {
@@ -383,7 +406,7 @@
         const uiParams = getParamsFromUI();
         resumoBox.textContent = "Processando análise...";
 
-        // 1) Chama pipeline (faz geocode, coleta, calcula score + rainfall index)
+        // 1) Pipeline principal
         const data = await fetchJson(`${API}/api/alertas_update`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -397,30 +420,41 @@
           })
         });
 
-        // 2) KPI ÁGUA (novo: usa breakdown.precip_24h_mm e precip_index)
+        // 2) KPI ÁGUA
         const mm  = getPrecipMM(data);
         const rix = getRainIndex(data);
-        const [lvlTxt, lvlClass, badgeTxt] = rainLevel(rix);
+        const [lvlTxt, lvlClass, badgeTxt, topClass] = rainLevel(rix);
         aguaTitulo.textContent = lvlTxt;
         aguaInfo.textContent   = Number.isFinite(mm) ? `Chuva 24h: ${mm.toFixed(1)} mm` : 'Sem dados';
         setPill(aguaBadge, badgeTxt, lvlClass);
+        kpiAguaTop.className = 'border-b-4 rounded-t-xl ' + topClass;
 
-        // 3) KPI AR (PM2.5 se disponível)
-        const pm25 = num(get(data, 'air.features.pm25'), null)
-                  ?? num(get(data, 'air.pm25'), null);
-        if (Number.isFinite(pm25)) {
+        // 3) KPI AR (PM2.5) — usa 'air_status' do backend quando não houver estação próxima
+        const airStatus = get(data, 'score.air_status') || get(data, 'air_status');
+        const pm25 = num(get(data, 'air.features.pm25'), null) ?? num(get(data, 'air.pm25'), null);
+        if (airStatus === 'sem_estacao') {
+          arTitulo.textContent = '—';
+          arInfo.textContent   = 'Sem estação próxima';
+          setPill(arBadge, '—', 'bg-gray-100 text-gray-700');
+          kpiArTop.className = 'border-b-4 rounded-t-xl border-gray-300';
+        } else if (Number.isFinite(pm25)) {
           arTitulo.textContent = (pm25 < 12) ? 'Bom' : (pm25 < 35) ? 'Moderado' : 'Ruim';
           arInfo.textContent   = `PM2.5: ${pm25.toFixed(1)} µg/m³`;
           const c = (pm25 < 12) ? 'bg-emerald-100 text-emerald-700' : (pm25 < 35) ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700';
           setPill(arBadge, arTitulo.textContent, c);
+          kpiArTop.className = 'border-b-4 rounded-t-xl ' + ((pm25 < 12) ? 'border-emerald-500' : (pm25 < 35) ? 'border-amber-500' : 'border-red-600');
         } else {
           arTitulo.textContent = '—';
           arInfo.textContent   = 'Sem dados';
           setPill(arBadge, '—', 'bg-gray-100 text-gray-700');
+          kpiArTop.className = 'border-b-4 rounded-t-xl border-gray-300';
         }
 
-        // 4) Resultado da análise
-        setNivelPill(get(data, 'score.level', 'N/A'));
+        // 4) Resultado da análise (usa cor que vem do backend)
+        const level   = get(data, 'score.level', 'N/A');
+        const lvColor = get(data, 'score.level_color') || get(data, 'color'); // compat
+        setNivelPill(level, lvColor);
+
         const resolved = get(data, 'params.resolve.display_name') || get(data, 'params.cidade') || elCidade.value.trim() || '—';
         const when = get(data, 'score.alert_obs.meta.observed_at') || get(data, 'observed_at') || '—';
         metaBox.innerHTML = `Local: <strong>${resolved}</strong> • Última observação: <strong>${when}</strong>`;
