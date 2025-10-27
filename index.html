@@ -4,188 +4,189 @@
   <meta charset="utf-8" />
   <title>AmazonSafe – Mapa e Alertas</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  />
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            c1: '#10b981',       // green-500
+            c2: '#064e3b',       // green-900
+            'ok-status': '#10b981',
+            'alert-status': '#f59e0b',
+            'crit-status': '#b91c1c',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js (para histórico) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <style>
-    :root{
-      --c1:#0d9488; /* teal */
-      --c2:#0f172a; /* slate-900 */
-      --bg:#f8fafc; /* slate-50 */
-      --card:#ffffff;
-      --muted:#64748b;
-      --ok:#065f46;
-      --err:#b91c1c;
-      --border:#e2e8f0;
-    }
-    *{box-sizing:border-box}
-    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:var(--bg); color:var(--c2);}
-    header {
-      position:sticky; top:0; z-index:10;
-      padding: 10px 14px; border-bottom: 1px solid var(--border);
-      display:flex; gap:10px; align-items:center; flex-wrap:wrap; background:#fff;
-    }
-    input, button {
-      padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px; background:#fff;
-    }
-    input{min-width: 160px;}
-    button { background:var(--c1); color:#fff; border:none; cursor:pointer; font-weight:600; }
-    button:disabled{opacity:.6; cursor:progress}
-    .badge { padding:4px 10px; border-radius:999px; background:#eef; font-size:12px; color:#334155; }
-
-    /* --- Layout principal: mapa à esquerda, dashboard à direita --- */
-    .layout{
-      display:grid; gap:12px; padding:12px; align-items:start;
-      grid-template-columns: 1.7fr 1fr;
-    }
-    @media (max-width: 1000px){
-      .layout{ grid-template-columns: 1fr; }
-    }
-
-    /* Mapa ocupa ~70vh por padrão; ajusta no mobile */
-    #mapWrap{ background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden; }
     #map { height: 70vh; min-height: 380px; }
-
-    .dash{
-      display:flex; flex-direction:column; gap:12px;
-      max-height: calc(100dvh - 110px); /* debaixo do header */
-      overflow:auto; padding-right:4px;
-    }
-    .card { padding:14px; border:1px solid var(--border); border-radius:14px; background:var(--card); box-shadow:0 1px 2px rgba(2,6,23,.04);}
-    .muted { color:var(--muted) }
-    .loading { cursor: progress; opacity: .85 }
-    .error { color:var(--err) }
-    .ok { color:var(--ok) }
-    .legend{font-size:12px;color:#334155}
-
-    .pill {
-      display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px;
-      font-weight:700; letter-spacing:.2px;
-      border:1px solid transparent;
-    }
-    .pill.green{ background:#ecfdf5; color:#065f46; border-color:#a7f3d0 }
-    .pill.yellow{ background:#fffbeb; color:#92400e; border-color:#fde68a }
-    .pill.red{ background:#fef2f2; color:#991b1b; border-color:#fecaca }
-
-    .kvs{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
-    .kv{ background:#f1f5f9; border:1px solid var(--border); border-radius:10px; padding:10px; }
-    .kv b{ display:block; font-size:12px; color:#334155; margin-bottom:6px; }
-    .kv .v{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
-
-    pre { margin:0 }
+    .dash { max-height: calc(100vh - 110px); }
   </style>
 </head>
-<body>
-<header style="
-  position:sticky; top:0; z-index:10;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:12px 24px; border-bottom:1px solid #e2e8f0; background:#fff;
-  flex-wrap:wrap;
-">
-  <!-- Logo + Título -->
-  <div style="display:flex; align-items:center; gap:16px; min-width:320px">
-    <img src="assets/logo.png" alt="AmazonSafe Logo" 
-         style="height:80px; width:auto; object-fit:contain;" />
-    <div>
-      <div style="font-size:22px; font-weight:800; color:#0f172a">
-        Amazon<span style="color:#65a30d">Safe</span>
+<body class="bg-gray-50 text-gray-800">
+
+<!-- HEADER (banner + controles) -->
+<header class="sticky top-0 z-20 border-b border-gray-200 bg-white">
+  <div class="mx-auto max-w-7xl px-4 py-3">
+    <div class="flex items-center gap-4 flex-wrap">
+      <!-- Marca -->
+      <div class="flex items-center gap-4 min-w-[320px]">
+        <img src="assets/logo.png" alt="AmazonSafe" class="h-14 w-auto object-contain">
+        <div>
+          <div class="text-2xl font-extrabold text-gray-900">
+            Amazon<span class="text-c1">Safe</span>
+          </div>
+          <div class="text-sm text-gray-600 -mt-0.5">Monitoramento Ambiental Inteligente</div>
+        </div>
+
+        <span class="ml-2 text-xs bg-indigo-50 text-indigo-900 px-3 py-1 rounded-full">
+          API: amazonsafe-api.onrender.com
+        </span>
       </div>
-      <div style="font-size:15px; font-weight:600; color:#334155; margin-top:2px">
-        Monitoramento Ambiental Inteligente
-      </div>
-      <div style="font-size:13px; color:#64748b;">
-        Dados em tempo real para um futuro seguro
+
+      <!-- Controles -->
+      <div class="ml-auto flex gap-2 flex-wrap">
+        <input id="cidade" placeholder="Cidade (ex: Belém-PA)" class="p-2 border border-gray-300 rounded-lg min-w-[180px] focus:outline-none focus:ring-2 focus:ring-c1" />
+        <input id="lat" type="number" step="0.0001" placeholder="Lat" class="p-2 border border-gray-300 rounded-lg w-28 focus:outline-none focus:ring-2 focus:ring-c1" />
+        <input id="lon" type="number" step="0.0001" placeholder="Lon" class="p-2 border border-gray-300 rounded-lg w-28 focus:outline-none focus:ring-2 focus:ring-c1" />
+        <button id="btnGo" class="p-2 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition disabled:opacity-60 disabled:cursor-progress">
+          Buscar & Analisar
+        </button>
       </div>
     </div>
-  </div>
-
-  <!-- Inputs e botão -->
-  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
-    <input id="cidade" placeholder="Cidade (ex: Belém-PA)" />
-    <input id="lat" type="number" step="0.0001" placeholder="Lat" style="width:120px" />
-    <input id="lon" type="number" step="0.0001" placeholder="Lon" style="width:120px" />
-    <button id="btnGo">Buscar & Analisar</button>
   </div>
 </header>
 
+<!-- LAYOUT -->
+<main class="mx-auto max-w-7xl p-3 lg:p-4 grid lg:grid-cols-3 gap-3">
 
+  <!-- KPIs (dinâmicos com breakdown) -->
+  <section class="lg:col-span-3">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <!-- Severity -->
+      <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+        <div id="kpiBarSeverity" class="h-1 bg-gray-200"></div>
+        <div class="p-4">
+          <p class="text-xs font-semibold uppercase text-gray-500">Gravidade (severity)</p>
+          <p id="kpiSeverityText" class="text-3xl font-bold text-gray-900 mt-1">—</p>
+          <span id="kpiSeverityBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+        </div>
+      </div>
+      <!-- Duration -->
+      <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+        <div id="kpiBarDuration" class="h-1 bg-gray-200"></div>
+        <div class="p-4">
+          <p class="text-xs font-semibold uppercase text-gray-500">Duração (duration)</p>
+          <p id="kpiDurationText" class="text-3xl font-bold text-gray-900 mt-1">—</p>
+          <span id="kpiDurationBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+        </div>
+      </div>
+      <!-- Frequency -->
+      <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+        <div id="kpiBarFrequency" class="h-1 bg-gray-200"></div>
+        <div class="p-4">
+          <p class="text-xs font-semibold uppercase text-gray-500">Frequência</p>
+          <p id="kpiFrequencyText" class="text-3xl font-bold text-gray-900 mt-1">—</p>
+          <span id="kpiFrequencyBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+        </div>
+      </div>
+      <!-- Impact -->
+      <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+        <div id="kpiBarImpact" class="h-1 bg-gray-200"></div>
+        <div class="p-4">
+          <p class="text-xs font-semibold uppercase text-gray-500">Impacto</p>
+          <p id="kpiImpactText" class="text-3xl font-bold text-gray-900 mt-1">—</p>
+          <span id="kpiImpactBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<main class="layout">
-  <!-- Coluna esquerda: MAPA -->
-  <section id="mapWrap">
+  <!-- MAPA -->
+  <section id="mapWrap" class="lg:col-span-2 bg-white border border-gray-200 rounded-xl shadow overflow-hidden">
     <div id="map"></div>
   </section>
 
-  <!-- Coluna direita: DASHBOARD -->
-  <aside class="dash">
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <strong style="font-size:16px">Resultado da análise</strong>
-        <span id="nivelPill" class="pill green" style="display:none">—</span>
-      </div>
-      <div id="metaBox" class="muted" style="font-size:12px;margin-top:6px"></div>
+  <!-- DASHBOARD -->
+  <aside class="dash lg:col-span-1 flex flex-col gap-4 overflow-y-auto pr-1">
 
-      <!-- Score numérico + breakdown -->
-      <div class="kvs" style="margin-top:10px">
-        <div class="kv">
-          <b>Score (0–1)</b>
-          <div id="scoreVal" class="v">—</div>
-        </div>
-        <div class="kv">
-          <b>Thresholds</b>
-          <div class="v" id="thresholds">verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66</div>
-        </div>
-        <div class="kv">
-          <b>Severity</b>
-          <div id="sevVal" class="v">—</div>
-        </div>
-        <div class="kv">
-          <b>Duration</b>
-          <div id="durVal" class="v">—</div>
-        </div>
-        <div class="kv">
-          <b>Frequency</b>
-          <div id="freqVal" class="v">—</div>
-        </div>
-        <div class="kv">
-          <b>Impact</b>
-          <div id="impVal" class="v">—</div>
-        </div>
+    <!-- Histórico (Chart.js) -->
+    <div class="bg-white p-4 border border-gray-200 rounded-xl shadow">
+      <h3 class="text-lg font-semibold text-gray-800 mb-3">Histórico de Risco</h3>
+      <div class="h-40">
+        <canvas id="riscoHistorico"></canvas>
       </div>
-
-      <!-- Resumo textual -->
-      <pre id="resumoBox" style="white-space:pre-wrap; font-size:12px; margin:12px 0 0"></pre>
     </div>
 
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <strong>Últimos alertas</strong>
-        <span class="legend">• círculo menor = foco fraco • maior = foco forte</span>
+    <!-- Resultado da análise -->
+    <div class="bg-white p-4 border border-gray-200 rounded-xl shadow">
+      <div class="flex items-center gap-3 flex-wrap">
+        <strong class="text-xl font-bold text-gray-900">Resultado da análise</strong>
+        <span id="nivelPill" class="hidden px-3 py-1 text-sm font-bold rounded-full">—</span>
       </div>
-      <pre id="alertasBox" style="white-space:pre-wrap; font-size:12px; margin:8px 0 0"></pre>
+      <div id="metaBox" class="text-gray-500 text-xs mt-2">Local: <strong>—</strong> • Última observação: <strong>—</strong></div>
+
+      <div class="grid grid-cols-2 gap-2 mt-4">
+        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Score (0–1)</b>
+          <div id="scoreVal" class="text-xl font-mono text-gray-900">—</div>
+        </div>
+        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Thresholds</b>
+          <div id="thresholds" class="text-xs font-mono text-gray-600">verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66</div>
+        </div>
+        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Severity</b>
+          <div id="sevVal" class="text-base font-mono text-gray-800">—</div>
+        </div>
+        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Duration</b>
+          <div id="durVal" class="text-base font-mono text-gray-800">—</div>
+        </div>
+        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Frequency</b>
+          <div id="freqVal" class="text-base font-mono text-gray-800">—</div>
+        </div>
+        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Impact</b>
+          <div id="impVal" class="text-base font-mono text-gray-800">—</div>
+        </div>
+      </div>
+
+      <pre id="resumoBox" class="whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700"></pre>
+    </div>
+
+    <!-- Últimos alertas -->
+    <div class="bg-white p-4 border border-gray-200 rounded-xl shadow">
+      <div class="flex justify-between items-center gap-2">
+        <strong class="text-lg font-semibold text-gray-900">Últimos alertas</strong>
+        <span class="text-xs text-gray-500">• círculo menor = foco fraco</span>
+      </div>
+      <pre id="alertasBox" class="whitespace-pre-wrap text-xs mt-3 bg-gray-50 border border-gray-200 rounded-lg p-2"></pre>
     </div>
   </aside>
 </main>
 
-<script
-  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-  crossorigin=""
-></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
 <script>
   const API = "https://amazonsafe-api.onrender.com";
 
-  // Mapa
-  const map = L.map('map').setView([-3.1, -60.0], 5);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18, attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
-  let focosLayer = L.layerGroup().addTo(map);
-
-  // DOM
+  // ---- DOM
   const elCidade = document.querySelector('#cidade');
   const elLat = document.querySelector('#lat');
   const elLon = document.querySelector('#lon');
@@ -196,31 +197,94 @@
   const nivelPill = document.querySelector('#nivelPill');
 
   const scoreVal = document.querySelector('#scoreVal');
-  const sevVal   = document.querySelector('#sevVal');
-  const durVal   = document.querySelector('#durVal');
-  const freqVal  = document.querySelector('#freqVal');
-  const impVal   = document.querySelector('#impVal');
+  const sevVal = document.querySelector('#sevVal');
+  const durVal = document.querySelector('#durVal');
+  const freqVal = document.querySelector('#freqVal');
+  const impVal = document.querySelector('#impVal');
 
-  function setLoading(on) {
-    [btnGo].forEach(b => b.disabled = on);
-    document.body.classList.toggle('loading', on);
+  // KPI elements
+  const kpi = {
+    severity: {text: document.querySelector('#kpiSeverityText'), badge: document.querySelector('#kpiSeverityBadge'), bar: document.querySelector('#kpiBarSeverity')},
+    duration: {text: document.querySelector('#kpiDurationText'), badge: document.querySelector('#kpiDurationBadge'), bar: document.querySelector('#kpiBarDuration')},
+    frequency:{text: document.querySelector('#kpiFrequencyText'),badge: document.querySelector('#kpiFrequencyBadge'), bar: document.querySelector('#kpiBarFrequency')},
+    impact:   {text: document.querySelector('#kpiImpactText'),   badge: document.querySelector('#kpiImpactBadge'),   bar: document.querySelector('#kpiBarImpact')}
+  };
+
+  // ---- Mapa
+  const map = L.map('map').setView([-3.1, -60.0], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+  let focosLayer = L.layerGroup().addTo(map);
+
+  // ---- Chart.js (histórico real a partir da API)
+  let riscoChart = null;
+  async function setupChartFromAPI() {
+    try {
+      const data = await fetchJson(`${API}/api/alertas?limit=30`);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      const labels = items.map(i => (i.ts || '').slice(5,10)); // "MM-DD"
+      const values = items.map(i => (typeof i.score === 'number' ? i.score : i.score?.score ?? null)).filter(v => v !== null);
+
+      const ctx = document.getElementById('riscoHistorico').getContext('2d');
+      if (riscoChart) riscoChart.destroy();
+      riscoChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Score de Risco',
+            data: values,
+            borderColor: 'rgb(6,78,59)',
+            backgroundColor: 'rgba(245,158,11,0.35)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {min: 0, max: 1, title: {display: true, text: 'Score'}},
+            x: {grid: {display: false}}
+          },
+          plugins: {legend: {display: false}}
+        }
+      });
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  function pill(level){
-    const lv = (level||'').toLowerCase();
-    nivelPill.style.display = 'inline-flex';
-    nivelPill.className = 'pill ' + (lv.startsWith('ver')     ? 'green'
-                                   : lv.startsWith('ama')     ? 'yellow'
-                                   : lv.startsWith('verme')   ? 'red'
-                                   : 'green');
-    const emoji = lv.startsWith('ver') ? '🟢' : lv.startsWith('ama') ? '🟡' : lv.startsWith('verme') ? '🔴' : '⚪';
-    nivelPill.textContent = `${emoji} ${level?.toUpperCase?.() || 'N/A'}`;
+  // ---- Helpers
+  function setLoading(on) {
+    btnGo.disabled = on;
+    document.body.classList.toggle('cursor-progress', on);
+    if (on) btnGo.classList.add('opacity-60'); else btnGo.classList.remove('opacity-60');
+  }
+
+  function classifyByScore(score) {
+    if (typeof score !== 'number') return {level:'N/A', cls:'bg-gray-100 text-gray-800', emoji:'⚪'};
+    if (score < 0.33)  return {level:'VERDE',   cls:'bg-green-100 text-green-800',  emoji:'🟢'};
+    if (score < 0.66)  return {level:'AMARELO', cls:'bg-amber-100 text-amber-800',  emoji:'🟡'};
+    return                {level:'VERMELHO', cls:'bg-red-100 text-red-700',    emoji:'🔴'};
+  }
+
+  function fmt(v){ return (typeof v === 'number') ? v.toFixed(2) : '—'; }
+
+  function colorForKPI(v){
+    if (typeof v !== 'number') return {badge:'bg-gray-100 text-gray-700', bar:'bg-gray-200'};
+    if (v < .33) return {badge:'bg-green-100 text-green-700', bar:'bg-green-500'};
+    if (v < .66) return {badge:'bg-amber-100 text-amber-700', bar:'bg-amber-500'};
+    return {badge:'bg-red-100 text-red-700', bar:'bg-red-600'};
   }
 
   async function fetchJson(url, opts) {
     const r = await fetch(url, opts);
     if (!r.ok) {
-      const text = await r.text().catch(() => '');
+      const text = await r.text().catch(()=> '');
       throw new Error(`HTTP ${r.status} ${r.statusText} – ${text?.slice(0,200)}`);
     }
     return r.json();
@@ -244,7 +308,6 @@
     return fallback;
   }
 
-  // Plota focos do INPE
   async function carregarFocos(params) {
     focosLayer.clearLayers();
     const qs = new URLSearchParams({ scope: "diario", region: "Brasil", limit: 300, ...params }).toString();
@@ -254,7 +317,7 @@
     focos.forEach(f => {
       const m = L.circleMarker([f.latitude, f.longitude], {
         radius: Math.max(3, Math.min(12, (f.frp || 1) / 8)),
-        color: '#ef4444', weight: 1, fillOpacity: 0.65
+        color: '#b91c1c', weight: 1, fillOpacity: 0.75
       }).bindPopup(`
         <div><strong>${f.municipio || ''} - ${f.uf || ''}</strong></div>
         <div>Satélite: ${f.satelite || '-'}</div>
@@ -271,10 +334,10 @@
     return { count: focos.length, params };
   }
 
-  // Fluxo único: geocodifica + roda análise + plota focos
+  // ---- Fluxo principal
   async function executar() {
     setLoading(true);
-    resumoBox.className = '';
+    resumoBox.className = 'whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700';
     try {
       const uiParams = getParamsFromUI();
 
@@ -293,33 +356,44 @@
         })
       });
 
-      // 2) Nível e metadados
-      pill(data?.score?.level || 'n/a');
+      // 2) Calcular nível a partir do score (garante consistência)
+      const scoreNum = (typeof data?.score?.score === 'number') ? data.score.score : null;
+      const lv = classifyByScore(scoreNum);
+      nivelPill.className = `px-3 py-1 text-sm font-bold rounded-full ${lv.cls}`;
+      nivelPill.textContent = `${lv.emoji} ${lv.level}`;
+      nivelPill.classList.remove('hidden');
+
+      // Metadados
       const resolved = data?.params?.resolve?.display_name || data?.params?.cidade || elCidade.value.trim();
       const when = data?.score?.alert_obs?.meta?.observed_at || data?.observed_at || '';
       metaBox.innerHTML = `Local: <strong>${resolved || '—'}</strong> • Última observação: <strong>${when || '—'}</strong>`;
 
-      // 3) Score e breakdown (NOVO)
-      const s  = typeof data?.score?.score === 'number' ? data.score.score : null;
+      // 3) Score e breakdown
       const br = data?.score?.breakdown || {};
-      scoreVal.textContent = (s ?? '—');
-      sevVal.textContent   = (br.severity  ?? '—');
-      durVal.textContent   = (br.duration  ?? '—');
-      freqVal.textContent  = (br.frequency ?? '—');
-      impVal.textContent   = (br.impact    ?? '—');
+      scoreVal.textContent = fmt(scoreNum);
+      sevVal.textContent   = fmt(br.severity);
+      durVal.textContent   = fmt(br.duration);
+      freqVal.textContent  = fmt(br.frequency);
+      impVal.textContent   = fmt(br.impact);
 
-      // 4) Focos, usando coords retornadas
+      // KPIs com cores
+      const sC = colorForKPI(br.severity);   kpi.severity.text.textContent = fmt(br.severity);   kpi.severity.badge.className = `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${sC.badge}`;  kpi.severity.badge.textContent='•'; kpi.severity.bar.className = `h-1 ${sC.bar}`;
+      const dC = colorForKPI(br.duration);   kpi.duration.text.textContent = fmt(br.duration);   kpi.duration.badge.className = `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${dC.badge}`;  kpi.duration.badge.textContent='•'; kpi.duration.bar.className = `h-1 ${dC.bar}`;
+      const fC = colorForKPI(br.frequency);  kpi.frequency.text.textContent= fmt(br.frequency);  kpi.frequency.badge.className= `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${fC.badge}`;  kpi.frequency.badge.textContent='•'; kpi.frequency.bar.className = `h-1 ${fC.bar}`;
+      const iC = colorForKPI(br.impact);     kpi.impact.text.textContent   = fmt(br.impact);     kpi.impact.badge.className   = `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${iC.badge}`;   kpi.impact.badge.textContent='•'; kpi.impact.bar.className = `h-1 ${iC.bar}`;
+
+      // 4) Focos
       const coords = extractCoords(data, uiParams);
       const res = await carregarFocos(coords);
+      resumoBox.classList.add('text-green-700', 'font-semibold');
+      resumoBox.textContent = `Focos plotados: ${res.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords, null, 2)}`;
 
-      resumoBox.className = 'ok';
-      resumoBox.textContent =
-        `Focos plotados: ${res.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords)}`;
-
-      // 5) Últimos alertas
+      // 5) Últimos alertas + gráfico histórico
       await carregarUltimosAlertas();
+      await setupChartFromAPI();
+
     } catch (err) {
-      resumoBox.className = 'error';
+      resumoBox.classList.add('text-red-700', 'font-semibold');
       resumoBox.textContent = `Erro: ${err.message}`;
       scoreVal.textContent = sevVal.textContent = durVal.textContent = freqVal.textContent = impVal.textContent = '—';
       console.error(err);
@@ -338,11 +412,13 @@
     }
   }
 
+  // Eventos
   btnGo.addEventListener('click', executar);
-  elCidade.addEventListener('keydown', (e)=>{ if(e.key==='Enter') executar(); });
+  elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
 
   // Inicial
   carregarUltimosAlertas();
+  setupChartFromAPI();
 </script>
 </body>
 </html>
