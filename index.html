@@ -582,6 +582,102 @@
       $imp.textContent  = safeNum(breakdown?.impact, 2);
     }
   </script>
+<script>
+/* ============ Helpers (cria só se ainda não existirem) ============ */
+window.safeNum ||= function(n, d = 2) {
+  return (typeof n === "number" && isFinite(n)) ? n.toFixed(d) : "—";
+};
+
+window.pickScoreBundle ||= function(api) {
+  const scoreObj =
+    api?.score ??
+    api?.result?.score ??
+    api?.persisted?.score ?? null;
+
+  const breakdown =
+    scoreObj?.breakdown ??
+    api?.alert_obs ??
+    api?.score?.alert_obs ?? null;
+
+  return { scoreObj, breakdown };
+};
+
+window.renderAnalysis ||= function(api) {
+  const { scoreObj, breakdown } = pickScoreBundle(api);
+  const $score = document.getElementById("scoreValue");
+  const $sev   = document.getElementById("sevValue");
+  const $dur   = document.getElementById("durValue");
+  const $freq  = document.getElementById("freqValue");
+  const $imp   = document.getElementById("impValue");
+  if (!$score || !$sev || !$dur || !$freq || !$imp) return;
+
+  if (!scoreObj && !breakdown) {
+    $score.textContent = $sev.textContent =
+    $dur.textContent   = $freq.textContent =
+    $imp.textContent   = "—";
+    return;
+  }
+  $score.textContent = safeNum(scoreObj?.score, 2);
+  $sev.textContent   = safeNum(breakdown?.severity, 2);
+  $dur.textContent   = safeNum(breakdown?.duration, 2);
+  $freq.textContent  = safeNum(breakdown?.frequency, 2);
+  $imp.textContent   = safeNum(breakdown?.impact, 2);
+};
+
+window.getWaterValue ||= function(api) {
+  const v1 = api?.score?.alert_obs?.meta?.precipitation;
+  const v2 = api?.weather?.precipitation;
+  const v3 = api?.water?.precipitation;
+  const raw = (v1 ?? v2 ?? v3);
+  if (raw === null || raw === undefined || Number.isNaN(Number(raw))) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+};
+
+window.renderWater ||= function(api) {
+  const val = getWaterValue(api);
+  const $aguaValue = document.getElementById("aguaValue");
+  const $aguaBadge = document.getElementById("aguaBadge");
+  if (!$aguaValue) return;
+
+  if (val === null) {
+    $aguaValue.textContent = "Sem dados";
+    if ($aguaBadge) $aguaBadge.textContent = "—";
+    return;
+  }
+  $aguaValue.textContent = `${val.toFixed(1)} mm`;
+  if ($aguaBadge) {
+    let label = "Baixo";
+    if (val >= 50) label = "Crítico";
+    else if (val >= 20) label = "Alto";
+    else if (val >= 5) label = "Moderado";
+    $aguaBadge.textContent = label;
+  }
+};
+
+/* ============ Hook de fetch (não-intrusivo) ============ */
+/* Intercepta chamadas à API principal, clona a resposta JSON e dispara os renders.
+   Não altera teu fluxo nem layout. */
+(function attachAnalysisHook(){
+  const ORIG_FETCH = window.fetch.bind(window);
+  window.fetch = async function(input, init) {
+    const res = await ORIG_FETCH(input, init);
+    try {
+      const url = typeof input === 'string' ? input : input?.url;
+      if (url && url.includes('/api/alertas_update')) {
+        const clone = res.clone();
+        // pode falhar se não for JSON — por isso o try isolado
+        const data = await clone.json();
+        renderAnalysis(data);
+        renderWater(data);
+      }
+    } catch (e) {
+      console.warn('Hook análise: não deu pra ler JSON da resposta', e);
+    }
+    return res; // mantém o comportamento original
+  };
+})();
+</script>
 
 </body>
 </html>
