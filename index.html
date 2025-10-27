@@ -207,6 +207,31 @@
 
   function qs(sel){ return document.querySelector(sel); }
 
+  // =========================
+  // Helpers robustos de dados
+  // =========================
+  function getDeep(obj, path) {
+    if (!obj) return undefined;
+    const parts = path.split('.');
+    let cur = obj;
+    for (const raw of parts) {
+      if (cur == null) return undefined;
+      const key = Object.keys(cur).find(k => k.toLowerCase() === raw.toLowerCase());
+      cur = key ? cur[key] : undefined;
+    }
+    return cur;
+  }
+
+  function pickNumber(obj, keys) {
+    for (const k of keys) {
+      const v = getDeep(obj, k);
+      if (v === null || v === undefined) continue;
+      const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'));
+      if (!Number.isNaN(n)) return n;
+    }
+    return null;
+  }
+
   // ---- Mapa
   const map = L.map('map').setView([-3.1, -60.0], 5);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -255,7 +280,7 @@
     }
   }
 
-  // ---- Helpers
+  // ---- Helpers gerais
   function setLoading(on) {
     btnGo.disabled = on;
     document.body.classList.toggle('cursor-progress', on);
@@ -293,8 +318,16 @@
   function clsBadge(color){ return `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${color}`; }
   function clsBar(color){ return `h-1 ${color}`; }
 
+  function classifyByScore(score) {
+    if (typeof score !== 'number') return {level:'N/A', cls:'bg-gray-100 text-gray-800', emoji:'⚪'};
+    if (score < 0.33)  return {level:'VERDE',   cls:'bg-green-100 text-green-800',  emoji:'🟢'};
+    if (score < 0.66)  return {level:'AMARELO', cls:'bg-amber-100 text-amber-800',  emoji:'🟡'};
+    return                {level:'VERMELHO', cls:'bg-red-100 text-red-700',    emoji:'🔴'};
+  }
+  function fmt(v){ return (typeof v === 'number') ? v.toFixed(2) : '—'; }
+
+  // KPIs (Água/Ar/Desmat/Focos)
   function updateKPI_Agua({rain24h, riverLevel, floodThres}) {
-    // prioridade: nível do rio se disponível
     let category, bar, badge, detail;
     if (typeof riverLevel === 'number' && typeof floodThres === 'number') {
       const pct = (riverLevel / floodThres);
@@ -358,14 +391,6 @@
     KPI.focos.detail.textContent = detail;
   }
 
-  function classifyByScore(score) {
-    if (typeof score !== 'number') return {level:'N/A', cls:'bg-gray-100 text-gray-800', emoji:'⚪'};
-    if (score < 0.33)  return {level:'VERDE',   cls:'bg-green-100 text-green-800',  emoji:'🟢'};
-    if (score < 0.66)  return {level:'AMARELO', cls:'bg-amber-100 text-amber-800',  emoji:'🟡'};
-    return                {level:'VERMELHO', cls:'bg-red-100 text-red-700',    emoji:'🔴'};
-  }
-  function fmt(v){ return (typeof v === 'number') ? v.toFixed(2) : '—'; }
-
   async function carregarUltimosAlertas() {
     try {
       alertasBox.textContent = "Carregando últimos alertas...";
@@ -412,7 +437,9 @@
     return { focos, stats: focosStats(focos), params };
   }
 
-  // ---- Fluxo principal
+  // ====================
+  // Fluxo principal (Go)
+  // ====================
   btnGo.addEventListener('click', executar);
   elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
 
@@ -461,20 +488,29 @@
       const coords = extractCoords(data, uiParams);
       const {focos, stats} = await carregarFocos(coords);
 
-      // KPIs: Ar / Água / Desmat / Focos
-      // ---- Água: tenta detectar campos comuns de chuva ou nível do rio
+      // ---- Água: tenta detectar campos de chuva/nível do rio
       const rain24 =
-        data?.weather?.rain_mm_24h ??
-        data?.meteo?.precip_sum_mm ??
-        data?.rain_24h_mm ??
-        null;
-      const riverLevel   = data?.hydro?.river_level_m ?? null;
-      const floodThres   = data?.hydro?.flood_threshold_m ?? null;
+        pickNumber(data, [
+          'weather.rain_mm_24h','weather.precip_sum_mm','weather.precipitation_24h',
+          'meteo.precip_sum_mm','rain_24h_mm','score.alert_obs.meta.precipitation'
+        ]);
+      const riverLevel = pickNumber(data, ['hydro.river_level_m']);
+      const floodThres = pickNumber(data, ['hydro.flood_threshold_m']);
       updateKPI_Agua({rain24h: rain24, riverLevel, floodThres});
 
-      // ---- Ar: PM2.5/PM10
-      const pm25 = data?.air?.pm25 ?? data?.air_quality?.pm25 ?? null;
-      const pm10 = data?.air?.pm10 ?? data?.air_quality?.pm10 ?? null;
+      // ---- Ar: PM2.5/PM10 com busca robusta
+      const pm25 = pickNumber(data, [
+        'air.pm25','air.pm2_5','air.pm25_mean','air.pm25_avg','air.current.pm25',
+        'air_quality.pm25','air_quality.pm2_5','air_quality.pm25_mean',
+        'aq.pm25','aq.pm2_5','aqi.pm25',
+        'score.alert_obs.meta.pm25','score.alert_obs.air.pm25','score.alert_obs.metrics.pm25'
+      ]);
+      const pm10 = pickNumber(data, [
+        'air.pm10','air.pm10_mean','air.current.pm10',
+        'air_quality.pm10','air_quality.pm10_mean',
+        'aq.pm10','aqi.pm10',
+        'score.alert_obs.meta.pm10','score.alert_obs.air.pm10','score.alert_obs.metrics.pm10'
+      ]);
       updateKPI_Ar({pm25, pm10});
 
       // ---- Desmatamento: FRP médio como proxy
@@ -504,11 +540,6 @@
     } finally {
       setLoading(false);
     }
-  }
-
-  async function setLoading(on){
-    btnGo.disabled = on;
-    document.body.classList.toggle('cursor-progress', on);
   }
 
   // Inicial
