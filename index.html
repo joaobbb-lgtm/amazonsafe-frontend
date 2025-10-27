@@ -34,31 +34,35 @@
 <body class="bg-gray-50 text-gray-800">
   <!-- HEADER -->
   <header class="sticky top-0 z-20 bg-white border-b border-gray-200">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
-      <div class="flex items-center gap-3 min-w-[280px]">
-        <img src="assets/logo.png" alt="AmazonSafe" class="h-25 w-25 rounded-full object-cover" />
-        <div>
-          <div class="text-xl font-extrabold">
-            Amazon<span class="text-emerald-600">Safe</span>
-          </div>
-          <div class="text-sm text-gray-500 -mt-0.5">Monitoramento Ambiental Inteligente</div>
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
+    <div class="flex items-center gap-3 min-w-[280px]">
+      <!-- LOGO corrigida -->
+      <img src="assets/logo.png" alt="AmazonSafe" class="h-[100px] w-[100px] rounded-full object-cover" />
+      <div>
+        <div class="text-2xl font-extrabold">
+          Amazon<span class="text-emerald-600">Safe</span>
         </div>
-
-        <span class="ml-2 text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full">
-          API: amazonsafe-api.onrender.com
-        </span>
+        <div class="text-sm text-gray-500 -mt-0.5">
+          Monitoramento Ambiental Inteligente
+        </div>
       </div>
 
-      <div class="ml-auto flex gap-2 flex-wrap">
-        <input id="cidade" placeholder="Cidade (ex: Belém, PA)" class="p-2 border border-gray-300 rounded-lg min-w-[210px] text-gray-800" />
-        <input id="lat" type="number" step="0.0001" placeholder="Lat" class="p-2 border border-gray-300 rounded-lg w-28 text-gray-800" />
-        <input id="lon" type="number" step="0.0001" placeholder="Lon" class="p-2 border border-gray-300 rounded-lg w-28 text-gray-800" />
-        <button id="btnGo" class="p-2 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed">
-          Buscar & Analisar
-        </button>
-      </div>
+      <span class="ml-2 text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full">
+        API: amazonsafe-api.onrender.com
+      </span>
     </div>
-  </header>
+
+    <div class="ml-auto flex gap-2 flex-wrap">
+      <input id="cidade" placeholder="Cidade (ex: Belém, PA)" class="p-2 border border-gray-300 rounded-lg min-w-[210px] text-gray-800" />
+      <input id="lat" type="number" step="0.0001" placeholder="Lat" class="p-2 border border-gray-300 rounded-lg w-28 text-gray-800" />
+      <input id="lon" type="number" step="0.0001" placeholder="Lon" class="p-2 border border-gray-300 rounded-lg w-28 text-gray-800" />
+      <button id="btnGo" class="p-2 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed">
+        Buscar & Analisar
+      </button>
+    </div>
+  </div>
+</header>
+
 
   <!-- KPIs -->
   <main class="max-w-7xl mx-auto px-3 lg:px-4">
