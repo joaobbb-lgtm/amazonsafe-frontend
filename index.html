@@ -5,586 +5,470 @@
   <title>AmazonSafe – Mapa e Alertas</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
-  <!-- Tailwind (CDN) -->
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           colors: {
-            c1: '#10b981',       // green-500
-            c2: '#064e3b',       // green-900
+            brand: '#16a34a',
+            amberish: '#f59e0b',
+            slateish: '#0f172a',
           }
         }
       }
     }
   </script>
 
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
   <style>
-    #map { height: 70vh; min-height: 380px; }
-    .dash { max-height: calc(100vh - 110px); }
+    #map { height: 64vh; min-height: 380px; }
+    .pill { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
-<!-- HEADER -->
-<header class="sticky top-0 z-20 border-b border-gray-200 bg-white">
-  <div class="mx-auto max-w-7xl px-4 py-3">
-    <div class="flex items-center gap-4 flex-wrap">
-      <!-- Marca -->
-      <div class="flex items-center gap-4 min-w-[320px]">
-        <img src="assets/logo.png" alt="AmazonSafe" class="h-14 w-auto object-contain">
+  <!-- HEADER -->
+  <header class="sticky top-0 z-20 bg-white border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
+      <div class="flex items-center gap-3 min-w-[280px]">
+        <!-- logo (troque por assets/logo.png se quiser) -->
+        <div class="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-2xl">🌿</div>
         <div>
-          <div class="text-2xl font-extrabold text-gray-900">
-            Amazon<span class="text-c1">Safe</span>
+          <div class="text-xl font-extrabold">
+            Amazon<span class="text-emerald-600">Safe</span>
           </div>
-          <div class="text-sm text-gray-600 -mt-0.5">Monitoramento Ambiental Inteligente</div>
+          <div class="text-sm text-gray-500 -mt-0.5">Monitoramento Ambiental Inteligente</div>
         </div>
-        <span class="ml-2 text-xs bg-indigo-50 text-indigo-900 px-3 py-1 rounded-full">
+
+        <span class="ml-2 text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full">
           API: amazonsafe-api.onrender.com
         </span>
       </div>
-      <!-- Controles -->
+
       <div class="ml-auto flex gap-2 flex-wrap">
-        <input id="cidade" placeholder="Cidade (ex: Belém-PA)" class="p-2 border border-gray-300 rounded-lg min-w-[180px] focus:outline-none focus:ring-2 focus:ring-c1" />
-        <input id="lat" type="number" step="0.0001" placeholder="Lat" class="p-2 border border-gray-300 rounded-lg w-28 focus:outline-none focus:ring-2 focus:ring-c1" />
-        <input id="lon" type="number" step="0.0001" placeholder="Lon" class="p-2 border border-gray-300 rounded-lg w-28 focus:outline-none focus:ring-2 focus:ring-c1" />
-        <button id="btnGo" class="p-2 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition disabled:opacity-60 disabled:cursor-progress">
+        <input id="cidade" placeholder="Cidade (ex: Belém, PA)" class="p-2 border border-gray-300 rounded-lg min-w-[210px] text-gray-800" />
+        <input id="lat" type="number" step="0.0001" placeholder="Lat" class="p-2 border border-gray-300 rounded-lg w-28 text-gray-800" />
+        <input id="lon" type="number" step="0.0001" placeholder="Lon" class="p-2 border border-gray-300 rounded-lg w-28 text-gray-800" />
+        <button id="btnGo" class="p-2 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed">
           Buscar & Analisar
         </button>
       </div>
     </div>
-  </div>
-</header>
+  </header>
 
-<!-- LAYOUT -->
-<main class="mx-auto max-w-7xl p-3 lg:p-4 grid lg:grid-cols-3 gap-3">
-
-  <!-- KPIs: Água / Ar / Desmatamento / Focos -->
-  <section class="lg:col-span-3">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <!-- KPIs -->
+  <main class="max-w-7xl mx-auto px-3 lg:px-4">
+    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
       <!-- Água -->
-<div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-  <div id="kpiBarAgua" class="h-1 bg-gray-200"></div>
-  <div class="p-4">
-    <p class="text-xs font-semibold uppercase text-gray-500">Água (chuva/cheia)</p>
-    <p id="kpiAguaText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
-
-    <!-- detalhe principal (chuva ou nível do rio) -->
-    <div class="text-xs text-gray-600 mt-1">
-      <span id="kpiAguaDetail">—</span>
-    </div>
-
-    <!-- novo: mostra índice pluviométrico -->
-    <div class="text-xs text-gray-600 mt-1">
-      Índice pluviométrico: <b id="aguaIndex">—</b>
-    </div>
-
-    <span id="kpiAguaBadge"
-          class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
-  </div>
-</div>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="border-b-4 border-emerald-500 rounded-t-xl"></div>
+        <div class="p-4">
+          <p class="text-xs uppercase text-gray-500 font-semibold">Água (chuva/cheia)</p>
+          <p id="aguaTitulo" class="text-3xl font-bold text-emerald-800 mt-1">—</p>
+          <p id="aguaInfo" class="text-sm text-gray-600 mt-1">—</p>
+          <span id="aguaBadge" class="pill bg-emerald-100 text-emerald-700 mt-2">—</span>
+        </div>
+      </div>
 
       <!-- Ar -->
-      <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-        <div id="kpiBarAr" class="h-1 bg-gray-200"></div>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="border-b-4 border-sky-500 rounded-t-xl"></div>
         <div class="p-4">
-          <p class="text-xs font-semibold uppercase text-gray-500">Qualidade do Ar</p>
-          <p id="kpiArText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
-          <div class="text-xs text-gray-600 mt-1"><span id="kpiArDetail">—</span></div>
-          <span id="kpiArBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+          <p class="text-xs uppercase text-gray-500 font-semibold">Qualidade do Ar</p>
+          <p id="arTitulo" class="text-3xl font-bold text-sky-800 mt-1">—</p>
+          <p id="arInfo" class="text-sm text-gray-600 mt-1">—</p>
+          <span id="arBadge" class="pill bg-sky-100 text-sky-700 mt-2">—</span>
         </div>
       </div>
-      <!-- Desmatamento (proxy FRP médio) -->
-      <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-        <div id="kpiBarDesmat" class="h-1 bg-gray-200"></div>
+
+      <!-- Desmatamento (proxy) -->
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="border-b-4 border-emerald-700 rounded-t-xl"></div>
         <div class="p-4">
-          <p class="text-xs font-semibold uppercase text-gray-500">Desmatamento (proxy)</p>
-          <p id="kpiDesmatText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
-          <div class="text-xs text-gray-600 mt-1"><span id="kpiDesmatDetail">—</span></div>
-          <span id="kpiDesmatBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+          <p class="text-xs uppercase text-gray-500 font-semibold">Desmatamento (proxy)</p>
+          <p id="desmTitulo" class="text-3xl font-bold text-emerald-900 mt-1">—</p>
+          <p id="desmInfo" class="text-sm text-gray-600 mt-1">—</p>
+          <span id="desmBadge" class="pill bg-emerald-100 text-emerald-700 mt-2">—</span>
         </div>
       </div>
+
       <!-- Focos -->
-      <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-        <div id="kpiBarFocos" class="h-1 bg-gray-200"></div>
+      <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div class="border-b-4 border-red-600 rounded-t-xl"></div>
         <div class="p-4">
-          <p class="text-xs font-semibold uppercase text-gray-500">Focos de Incêndio</p>
-          <p id="kpiFocosText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
-          <div class="text-xs text-gray-600 mt-1"><span id="kpiFocosDetail">—</span></div>
-          <span id="kpiFocosBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+          <p class="text-xs uppercase text-gray-500 font-semibold">Focos de Incêndio</p>
+          <p id="focosTitulo" class="text-3xl font-bold text-red-700 mt-1">—</p>
+          <p id="focosInfo" class="text-sm text-gray-600 mt-1">—</p>
+          <span id="focosBadge" class="pill bg-red-100 text-red-700 mt-2">—</span>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- MAPA -->
-  <section id="mapWrap" class="lg:col-span-2 bg-white border border-gray-200 rounded-xl shadow overflow-hidden">
-    <div id="map"></div>
-  </section>
-
-  <!-- DASHBOARD -->
-  <aside class="dash lg:col-span-1 flex flex-col gap-4 overflow-y-auto pr-1">
-    <div class="bg-white p-4 border border-gray-200 rounded-xl shadow">
-      <h3 class="text-lg font-semibold text-gray-800 mb-3">Histórico de Risco</h3>
-      <div class="h-40">
-        <canvas id="riscoHistorico"></canvas>
-      </div>
-    </div>
-
-    <div class="bg-white p-4 border border-gray-200 rounded-xl shadow">
-      <div class="flex items-center gap-3 flex-wrap">
-        <strong class="text-xl font-bold text-gray-900">Resultado da análise</strong>
-        <span id="nivelPill" class="hidden px-3 py-1 text-sm font-bold rounded-full">—</span>
-      </div>
-      <div id="metaBox" class="text-gray-500 text-xs mt-2">Local: <strong>—</strong> • Última observação: <strong>—</strong></div>
-
-      <div class="grid grid-cols-2 gap-2 mt-4">
-        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
-          <b class="block text-xs text-gray-600 mb-1">Score (0–1)</b>
-          <div id="scoreVal" class="text-xl font-mono text-gray-900">—</div>
-        </div>
-        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
-          <b class="block text-xs text-gray-600 mb-1">Thresholds</b>
-          <div id="thresholds" class="text-xs font-mono text-gray-600">verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66</div>
-        </div>
-        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
-          <b class="block text-xs text-gray-600 mb-1">Severity</b>
-          <div id="sevVal" class="text-base font-mono text-gray-800">—</div>
-        </div>
-        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
-          <b class="block text-xs text-gray-600 mb-1">Duration</b>
-          <div id="durVal" class="text-base font-mono text-gray-800">—</div>
-        </div>
-        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
-          <b class="block text-xs text-gray-600 mb-1">Frequency</b>
-          <div id="freqVal" class="text-base font-mono text-gray-800">—</div>
-        </div>
-        <div class="bg-gray-100 border border-gray-200 rounded-lg p-3">
-          <b class="block text-xs text-gray-600 mb-1">Impact</b>
-          <div id="impVal" class="text-base font-mono text-gray-800">—</div>
-        </div>
+    <!-- MAPA + LADO DIREITO -->
+    <section class="grid lg:grid-cols-3 gap-4 mt-4">
+      <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div id="map"></div>
       </div>
 
-      <pre id="resumoBox" class="whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700"></pre>
-    </div>
+      <aside class="flex flex-col gap-4">
+        <!-- Histórico de risco (gráfico simples) -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <h3 class="font-semibold text-emerald-800 mb-2">Histórico de Risco</h3>
+          <div class="h-40">
+            <canvas id="riscoHistorico"></canvas>
+          </div>
+        </div>
 
-    <div class="bg-white p-4 border border-gray-200 rounded-xl shadow">
-      <div class="flex justify-between items-center gap-2">
-        <strong class="text-lg font-semibold text-gray-900">Últimos alertas</strong>
-        <span class="text-xs text-gray-500">• círculo menor = foco fraco</span>
-      </div>
-      <pre id="alertasBox" class="whitespace-pre-wrap text-xs mt-3 bg-gray-50 border border-gray-200 rounded-lg p-2"></pre>
-    </div>
-  </aside>
-</main>
+        <!-- Resultado da análise -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div class="flex items-center gap-3 flex-wrap">
+            <strong class="text-lg font-semibold text-emerald-800">Resultado da análise</strong>
+            <span id="nivelPill" class="pill bg-gray-100 text-gray-700">—</span>
+          </div>
+          <div id="metaBox" class="text-gray-500 text-xs mt-2">
+            Local: <strong>—</strong> • Última observação: <strong>—</strong>
+          </div>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-        crossorigin=""></script>
+          <div class="grid grid-cols-2 gap-2 mt-3">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Score (0–1)</b>
+              <div id="scoreVal" class="text-xl font-mono text-emerald-800">—</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Thresholds</b>
+              <div id="thresholds" class="text-xs font-mono text-gray-600">
+                verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66
+              </div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Severity</b>
+              <div id="sevVal" class="text-base font-mono text-gray-800">—</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Duration</b>
+              <div id="durVal" class="text-base font-mono text-gray-800">—</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Frequency</b>
+              <div id="freqVal" class="text-base font-mono text-gray-800">—</div>
+            </div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Impact</b>
+              <div id="impVal" class="text-base font-mono text-gray-800">—</div>
+            </div>
+          </div>
 
-<script>
-  const API = "https://amazonsafe-api.onrender.com";
+          <pre id="resumoBox" class="whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700"></pre>
+        </div>
 
-  // ---- DOM
-  const elCidade = document.querySelector('#cidade');
-  const elLat = document.querySelector('#lat');
-  const elLon = document.querySelector('#lon');
-  const btnGo = document.querySelector('#btnGo');
-  const resumoBox = document.querySelector('#resumoBox');
-  const alertasBox = document.querySelector('#alertasBox');
-  const metaBox = document.querySelector('#metaBox');
-  const nivelPill = document.querySelector('#nivelPill');
+        <!-- Últimos alertas -->
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+          <div class="flex justify-between items-center gap-2">
+            <strong class="text-lg font-semibold text-emerald-800">Últimos alertas</strong>
+            <span class="text-xs text-gray-500">• círculo menor = foco fraco</span>
+          </div>
+          <pre id="alertasBox" class="whitespace-pre-wrap text-xs mt-3 bg-gray-50 border border-gray-200 rounded-lg p-2"></pre>
+        </div>
+      </aside>
+    </section>
+  </main>
 
-  const scoreVal = document.querySelector('#scoreVal');
-  const sevVal = document.querySelector('#sevVal');
-  const durVal = document.querySelector('#durVal');
-  const freqVal = document.querySelector('#freqVal');
-  const impVal = document.querySelector('#impVal');
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  // KPI elements
-  const KPI = {
-    agua:   { text: qs('#kpiAguaText'),   badge: qs('#kpiAguaBadge'),   bar: qs('#kpiBarAgua'),   detail: qs('#kpiAguaDetail') },
-    ar:     { text: qs('#kpiArText'),     badge: qs('#kpiArBadge'),     bar: qs('#kpiBarAr'),     detail: qs('#kpiArDetail') },
-    desmat: { text: qs('#kpiDesmatText'), badge: qs('#kpiDesmatBadge'), bar: qs('#kpiBarDesmat'), detail: qs('#kpiDesmatDetail') },
-    focos:  { text: qs('#kpiFocosText'),  badge: qs('#kpiFocosBadge'),  bar: qs('#kpiBarFocos'),  detail: qs('#kpiFocosDetail') },
-  };
+  <script>
+    // ====== CONFIG ===========================================================
+    const API = "https://amazonsafe-api.onrender.com";
 
-  function qs(sel){ return document.querySelector(sel); }
+    // ====== DOM ==============================================================
+    const elCidade = document.querySelector('#cidade');
+    const elLat    = document.querySelector('#lat');
+    const elLon    = document.querySelector('#lon');
+    const btnGo    = document.querySelector('#btnGo');
 
-  // =========================
-  // Helpers robustos de dados
-  // =========================
-  function getDeep(obj, path) {
-    if (!obj) return undefined;
-    const parts = path.split('.');
-    let cur = obj;
-    for (const raw of parts) {
-      if (cur == null) return undefined;
-      const key = Object.keys(cur).find(k => k.toLowerCase() === raw.toLowerCase());
-      cur = key ? cur[key] : undefined;
-    }
-    return cur;
-  }
+    // KPIs
+    const aguaTitulo = document.querySelector('#aguaTitulo');
+    const aguaInfo   = document.querySelector('#aguaInfo');
+    const aguaBadge  = document.querySelector('#aguaBadge');
 
-  function pickNumber(obj, keys) {
-    for (const k of keys) {
-      const v = getDeep(obj, k);
-      if (v === null || v === undefined) continue;
-      const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'));
-      if (!Number.isNaN(n)) return n;
-    }
-    return null;
-  }
+    const arTitulo = document.querySelector('#arTitulo');
+    const arInfo   = document.querySelector('#arInfo');
+    const arBadge  = document.querySelector('#arBadge');
 
-  // ---- Mapa
-  const map = L.map('map').setView([-3.1, -60.0], 5);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18, attribution: '&copy; OpenStreetMap'
-  }).addTo(map);
-  let focosLayer = L.layerGroup().addTo(map);
+    const desmTitulo = document.querySelector('#desmTitulo');
+    const desmInfo   = document.querySelector('#desmInfo');
+    const desmBadge  = document.querySelector('#desmBadge');
 
-  // ---- Chart.js (histórico real a partir da API)
-  let riscoChart = null;
-  async function setupChartFromAPI() {
-    try {
-      const data = await fetchJson(`${API}/api/alertas?limit=30`);
-      const items = Array.isArray(data?.items) ? data.items : [];
-      const labels = items.map(i => (i.ts || '').slice(5,10)); // "MM-DD"
-      const values = items.map(i => (typeof i.score === 'number' ? i.score : i.score?.score ?? null)).filter(v => v !== null);
+    const focosTitulo = document.querySelector('#focosTitulo');
+    const focosInfo   = document.querySelector('#focosInfo');
+    const focosBadge  = document.querySelector('#focosBadge');
 
-      const ctx = document.getElementById('riscoHistorico').getContext('2d');
-      if (riscoChart) riscoChart.destroy();
-      riscoChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Score de Risco',
-            data: values,
-            borderColor: 'rgb(6,78,59)',
-            backgroundColor: 'rgba(245,158,11,0.35)',
-            tension: 0.3,
-            fill: true,
-            pointRadius: 3,
-            pointHoverRadius: 5,
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {min: 0, max: 1, title: {display: true, text: 'Score'}},
-            x: {grid: {display: false}}
-          },
-          plugins: {legend: {display: false}}
-        }
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
+    // Resultado
+    const nivelPill = document.querySelector('#nivelPill');
+    const metaBox   = document.querySelector('#metaBox');
+    const scoreVal  = document.querySelector('#scoreVal');
+    const sevVal    = document.querySelector('#sevVal');
+    const durVal    = document.querySelector('#durVal');
+    const freqVal   = document.querySelector('#freqVal');
+    const impVal    = document.querySelector('#impVal');
+    const resumoBox = document.querySelector('#resumoBox');
 
-  // ---- Helpers gerais
-  function setLoading(on) {
-    btnGo.disabled = on;
-    document.body.classList.toggle('cursor-progress', on);
-    if (on) btnGo.classList.add('opacity-60'); else btnGo.classList.remove('opacity-60');
-  }
+    const alertasBox = document.querySelector('#alertasBox');
 
-  async function fetchJson(url, opts) {
-    const r = await fetch(url, opts);
-    if (!r.ok) {
-      const text = await r.text().catch(()=> '');
-      throw new Error(`HTTP ${r.status} ${r.statusText} – ${text?.slice(0,200)}`);
-    }
-    return r.json();
-  }
+    // ====== MAPA =============================================================
+    const map = L.map('map').setView([-3.1, -60.0], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18, attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    let focosLayer = L.layerGroup().addTo(map);
 
-  function getParamsFromUI() {
-    const cidade = elCidade.value.trim();
-    const lat = parseFloat(elLat.value);
-    const lon = parseFloat(elLon.value);
-    if (cidade) return { cidade };
-    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-      throw new Error("Informe a cidade **ou** latitude/longitude válidos.");
-    }
-    return { lat, lon };
-  }
-
-  function extractCoords(resp, fallback){
-    if (resp?.params?.lat && resp?.params?.lon) return { lat: resp.params.lat, lon: resp.params.lon };
-    if (resp?.lat && resp?.lon) return { lat: resp.lat, lon: resp.lon };
-    if (resp?.resolve?.lat && resp?.resolve?.lon) return { lat: resp.resolve.lat, lon: resp.resolve.lon };
-    return fallback;
-  }
-
-  // Categorizações e estilos
-  function clsBadge(color){ return `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${color}`; }
-  function clsBar(color){ return `h-1 ${color}`; }
-
-  function classifyByScore(score) {
-    if (typeof score !== 'number') return {level:'N/A', cls:'bg-gray-100 text-gray-800', emoji:'⚪'};
-    if (score < 0.33)  return {level:'VERDE',   cls:'bg-green-100 text-green-800',  emoji:'🟢'};
-    if (score < 0.66)  return {level:'AMARELO', cls:'bg-amber-100 text-amber-800',  emoji:'🟡'};
-    return                {level:'VERMELHO', cls:'bg-red-100 text-red-700',    emoji:'🔴'};
-  }
-  function fmt(v){ return (typeof v === 'number') ? v.toFixed(2) : '—'; }
-
-  // KPIs (Água/Ar/Desmat/Focos)
-  function updateKPI_Agua({precipIndex, rain24h, riverLevel, floodThres}) {
-  // Decide o que mostrar como “detalhe”: prioridade para nível do rio, depois chuva 24h
-  let category = '—', badge='bg-gray-100 text-gray-700', bar='bg-gray-200', detail='Sem dados';
-
-  if (typeof riverLevel === 'number' && typeof floodThres === 'number') {
-    const pct = (riverLevel / floodThres);
-    if (pct < 0.7){ category='Baixo';  badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
-    else if (pct < 1){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; }
-    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; }
-    detail = `Nível do rio: ${riverLevel.toFixed(2)} m (limiar: ${floodThres.toFixed(2)} m)`;
-
-  } else if (typeof rain24h === 'number') {
-    // Se quiser considerar 0 mm como “Baixo”, mantenha o <= 0 aqui
-    if (rain24h <= 0){ category='Baixo'; badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
-    else if (rain24h < 10){ category='Baixo';  badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
-    else if (rain24h < 40){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; }
-    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; }
-    detail = `Chuva 24h: ${rain24h.toFixed(1)} mm`;
-  }
-
-  // Se vier o índice pluviométrico do backend, usamos para a “pílula” (cor/nível) e mostramos o valor
-  const idxEl = document.querySelector('#aguaIndex');
-  if (precipIndex != null) {
-    idxEl.textContent = precipIndex.toFixed(2);
-
-    if (precipIndex >= 0.66) {         // alto
-      category = 'Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600';
-    } else if (precipIndex >= 0.33) {  // médio
-      category = 'Alerta';  badge='bg-amber-100 text-amber-700'; bar='bg-amber-500';
-    } else {                           // baixo
-      // só rebaixa se ainda não foi classificado como crítico/alerta por nível do rio/chuva
-      if (category === '—' || category === 'Baixo') {
-        category = 'Baixo'; badge='bg-green-100 text-green-700'; bar='bg-green-500';
+    // ====== GRÁFICO ==========================================================
+    const riscoCtx = document.getElementById('riscoHistorico').getContext('2d');
+    const riscoChart = new Chart(riscoCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{ label: 'Score', data: [], borderColor: 'rgb(16, 185, 129)', tension: 0.3, pointRadius: 4 }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { min: 0, max: 1 } },
+        plugins: { legend: { display: false } }
       }
-    }
-  } else {
-    idxEl.textContent = '—';
-  }
-
-  KPI.agua.text.textContent = category;
-  KPI.agua.badge.className = clsBadge(badge);
-  KPI.agua.badge.textContent = category === '—' ? '—' :
-    (category==='Baixo'?'💧 OK':category==='Alerta'?'💧 Alerta':'💧 Crítico');
-  KPI.agua.bar.className = clsBar(bar);
-  KPI.agua.detail.textContent = detail;
-}
-
-
-  function updateKPI_Ar({pm25, pm10}) {
-    const val = (typeof pm25 === 'number') ? pm25 : (typeof pm10 === 'number' ? pm10 : null);
-    let category, badge, bar, detail;
-    if (val === null){ category='—'; badge='bg-gray-100 text-gray-700'; bar='bg-gray-200'; detail='Sem dados'; }
-    else if (val < 15){ category='Bom'; badge='bg-green-100 text-green-700'; bar='bg-green-500'; detail=`PM2.5: ${val.toFixed(1)} µg/m³`; }
-    else if (val < 35){ category='Moderado'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; detail=`PM2.5: ${val.toFixed(1)} µg/m³`; }
-    else if (val < 55){ category='Ruim'; badge='bg-orange-200 text-orange-800'; bar='bg-orange-500'; detail=`PM2.5: ${val.toFixed(1)} µg/m³`; }
-    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; detail=`PM2.5: ${val.toFixed(1)} µg/m³`; }
-    KPI.ar.text.textContent = category;
-    KPI.ar.badge.className = clsBadge(badge);
-    KPI.ar.badge.textContent = category === '—' ? '—' : (category==='Bom'?'💨 Bom':category==='Moderado'?'💨 Moderado':category==='Ruim'?'💨 Ruim':'💨 Crítico');
-    KPI.ar.bar.className = clsBar(bar);
-    KPI.ar.detail.textContent = detail;
-  }
-
-  function updateKPI_Desmat({avgFRP}) {
-    let category, badge, bar, detail;
-    if (typeof avgFRP !== 'number'){ category='—'; badge='bg-gray-100 text-gray-700'; bar='bg-gray-200'; detail='Sem dados'; }
-    else if (avgFRP < 20){ category='Baixo'; badge='bg-green-100 text-green-700'; bar='bg-green-500'; detail=`FRP médio: ${avgFRP.toFixed(1)}`; }
-    else if (avgFRP < 40){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; detail=`FRP médio: ${avgFRP.toFixed(1)}`; }
-    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; detail=`FRP médio: ${avgFRP.toFixed(1)}`; }
-    KPI.desmat.text.textContent = category;
-    KPI.desmat.badge.className = clsBadge(badge);
-    KPI.desmat.badge.textContent = category === '—' ? '—' : (category==='Baixo'?'🌲 Baixo':category==='Alerta'?'🌲 Alerta':'🌲 Crítico');
-    KPI.desmat.bar.className = clsBar(bar);
-    KPI.desmat.detail.textContent = detail;
-  }
-
-  function updateKPI_Focos({count}) {
-    let category, badge, bar, detail;
-    if (typeof count !== 'number'){ category='—'; badge='bg-gray-100 text-gray-700'; bar='bg-gray-200'; detail='Sem dados'; }
-    else if (count < 40){ category='Baixo'; badge='bg-green-100 text-green-700'; bar='bg-green-500'; detail=`Focos: ${count}`; }
-    else if (count < 120){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; detail=`Focos: ${count}`; }
-    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; detail=`Focos: ${count}`; }
-    KPI.focos.text.textContent = category;
-    KPI.focos.badge.className = clsBadge(badge);
-    KPI.focos.badge.textContent = category === '—' ? '—' : (category==='Baixo'?'🔥 Baixo':category==='Alerta'?'🔥 Alerta':'🔥 Crítico');
-    KPI.focos.bar.className = clsBar(bar);
-    KPI.focos.detail.textContent = detail;
-  }
-
-  async function carregarUltimosAlertas() {
-    try {
-      alertasBox.textContent = "Carregando últimos alertas...";
-      const data = await fetchJson(`${API}/api/alertas?limit=5`);
-      alertasBox.textContent = JSON.stringify(data, null, 2);
-    } catch (err) {
-      alertasBox.textContent = `Erro ao carregar alertas: ${err.message}`;
-    }
-  }
-
-  // Estatística dos focos para KPIs
-  function focosStats(focos){
-    if (!Array.isArray(focos) || !focos.length) return {count:0, avg_frp:null, max_frp:null};
-    let sum=0, cnt=0, max=null;
-    focos.forEach(f=>{ const v = Number(f.frp); if(!isNaN(v)){ sum+=v; cnt++; max = (max===null? v : Math.max(max,v)); }});
-    return {count:focos.length, avg_frp: cnt? (sum/cnt): null, max_frp:max};
-  }
-
-  // ---- Leaflet focos
-  async function carregarFocos(params) {
-    focosLayer.clearLayers();
-    const qs = new URLSearchParams({ scope: "diario", region: "Brasil", limit: 300, ...params }).toString();
-    const data = await fetchJson(`${API}/api/inpe/focos?${qs}`);
-    const focos = (data.features && data.features.focos) || [];
-
-    focos.forEach(f => {
-      const m = L.circleMarker([f.latitude, f.longitude], {
-        radius: Math.max(3, Math.min(12, (f.frp || 1) / 8)),
-        color: '#b91c1c', weight: 1, fillOpacity: 0.75
-      }).bindPopup(`
-        <div><strong>${f.municipio || ''} - ${f.uf || ''}</strong></div>
-        <div>Satélite: ${f.satelite || '-'}</div>
-        <div>FRP: ${f.frp ?? '-'}</div>
-        <div>Bioma: ${f.bioma || '-'}</div>
-      `);
-      m.addTo(focosLayer);
     });
 
-    if (focos.length) {
-      const bounds = L.latLngBounds(focos.map(f => [f.latitude, f.longitude]));
-      map.fitBounds(bounds.pad(0.2));
+    // ====== HELPERS (robustos) ==============================================
+    const get = (obj, path, def = undefined) => {
+      try { return path.split('.').reduce((o,k)=> (o && k in o) ? o[k] : undefined, obj) ?? def; }
+      catch { return def; }
+    };
+    const num = (v, def=null) => {
+      const n = (typeof v === 'string' && v.trim() === '') ? NaN : Number(v);
+      return Number.isFinite(n) ? n : def;
+    };
+    const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+    // chuva 24h e índice de cheia vindos do backend novo (score.breakdown)
+    function getPrecipMM(resp) {
+      const fromBreak = num(get(resp, 'score.breakdown.precip_24h_mm'), null);
+      if (fromBreak !== null) return fromBreak;
+
+      // compat com modelo antigo (open-meteo)
+      const pm = num(get(resp, 'weather.features.precipitation'), null)
+              ?? num(get(resp, 'weather.current.precipitation'), null);
+      return pm;
+    }
+    function getRainIndex(resp) {
+      const idx = num(get(resp, 'score.breakdown.precip_index'), null);
+      if (idx !== null) return clamp01(idx);
+      // fallback: se não tiver índice, calcula algo simples a partir da chuva
+      const mm = getPrecipMM(resp);
+      if (!Number.isFinite(mm)) return null;
+      const low  = Math.min(1, mm / 10);   // 10mm+ = 1
+      const high = Math.min(1, Math.max(0, (mm - 70) / 50)); // 70→120mm mapeia 0→1
+      return clamp01(Math.max(low, high));
+    }
+    function rainLevel(rainIdx) {
+      if (!Number.isFinite(rainIdx)) return ['Sem dados', 'bg-gray-100 text-gray-700', '—'];
+      if (rainIdx < 0.33) return ['Baixo', 'bg-emerald-100 text-emerald-700', 'OK'];
+      if (rainIdx < 0.66) return ['Moderado', 'bg-amber-100 text-amber-800', 'Atenção'];
+      return ['Alto', 'bg-red-100 text-red-700', 'Risco de cheia'];
     }
 
-    return { focos, stats: focosStats(focos), params };
-  }
-
-  // ====================
-  // Fluxo principal (Go)
-  // ====================
-  btnGo.addEventListener('click', executar);
-  elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
-
-  async function executar() {
-    setLoading(true);
-    resumoBox.className = 'whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700';
-    try {
-      const uiParams = getParamsFromUI();
-
-      // 1) Análise (usa geocodificação do backend)
-      resumoBox.textContent = "Processando análise...";
-      const data = await fetchJson(`${API}/api/alertas_update`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...uiParams,
-          scope: "diario",
-          region: "Brasil",
-          raio_km: 150,
-          air_radius_m: 10000,
-          weather_provider: "open-meteo"
-        })
-      });
-
-      // 2) Level por score
-      const scoreNum = (typeof data?.score?.score === 'number') ? data.score.score : null;
-      const lv = classifyByScore(scoreNum);
-      nivelPill.className = `px-3 py-1 text-sm font-bold rounded-full ${lv.cls}`;
-      nivelPill.textContent = `${lv.emoji} ${lv.level}`;
-      nivelPill.classList.remove('hidden');
-
-      // Metadados
-      const resolved = data?.params?.resolve?.display_name || data?.params?.cidade || elCidade.value.trim();
-      const when = data?.score?.alert_obs?.meta?.observed_at || data?.observed_at || '';
-      metaBox.innerHTML = `Local: <strong>${resolved || '—'}</strong> • Última observação: <strong>${when || '—'}</strong>`;
-
-      // 3) Score e breakdown
-      const precipIndex = (typeof br.precip_index === 'number') ? br.precip_index : null;
-      scoreVal.textContent = fmt(scoreNum);
-      sevVal.textContent   = fmt(br.severity);
-      durVal.textContent   = fmt(br.duration);
-      freqVal.textContent  = fmt(br.frequency);
-      impVal.textContent   = fmt(br.impact);
-
-      // 4) Focos + KPIs Focos/Desmatamento
-      const coords = extractCoords(data, uiParams);
-      const {focos, stats} = await carregarFocos(coords);
-
-      // ---- Água: tenta detectar campos de chuva/nível do rio
-      const rain24 =
-        pickNumber(data, [
-          'weather.rain_mm_24h','weather.precip_sum_mm','weather.precipitation_24h',
-          'weather.features.precipitation','meteo.precip_sum_mm','rain_24h_mm',
-          'score.alert_obs.meta.precipitation'
-        ]);
-      const riverLevel = pickNumber(data, ['hydro.river_level_m']);
-      const floodThres = pickNumber(data, ['hydro.flood_threshold_m']);
-
-      // ---- Ar: PM2.5/PM10 com busca robusta
-      const pm25 = pickNumber(data, [
-        'air.pm25','air.pm2_5','air.pm25_mean','air.pm25_avg','air.current.pm25',
-        'air_quality.pm25','air_quality.pm2_5','air_quality.pm25_mean',
-        'aq.pm25','aq.pm2_5','aqi.pm25',
-        'score.alert_obs.meta.pm25','score.alert_obs.air.pm25','score.alert_obs.metrics.pm25'
-      ]);
-      const pm10 = pickNumber(data, [
-        'air.pm10','air.pm10_mean','air.current.pm10',
-        'air_quality.pm10','air_quality.pm10_mean',
-        'aq.pm10','aqi.pm10',
-        'score.alert_obs.meta.pm10','score.alert_obs.air.pm10','score.alert_obs.metrics.pm10'
-      ]);
-      updateKPI_Ar({pm25, pm10});
-
-      // ---- Desmatamento: FRP médio como proxy
-      updateKPI_Desmat({avgFRP: stats.avg_frp});
-
-      // ---- Focos: quantidade
-      updateKPI_Focos({count: stats.count});
-
-      // ----- Água: 
-      updateKPI_Agua({precipIndex, rain24h: rain24, riverLevel, floodThres});
-
-      resumoBox.classList.add('text-green-700', 'font-semibold');
-      resumoBox.textContent = `Focos plotados: ${stats.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords, null, 2)}`;
-
-      // 5) Últimos alertas + gráfico
-      await carregarUltimosAlertas();
-      await setupChartFromAPI();
-
-    } catch (err) {
-      resumoBox.classList.add('text-red-700', 'font-semibold');
-      resumoBox.textContent = `Erro: ${err.message}`;
-      scoreVal.textContent = sevVal.textContent = durVal.textContent = freqVal.textContent = impVal.textContent = '—';
-      // KPI reset
-      [KPI.agua, KPI.ar, KPI.desmat, KPI.focos].forEach(k=> {
-        k.text.textContent = '—'; k.detail.textContent = 'Sem dados';
-        k.badge.className = clsBadge('bg-gray-100 text-gray-700');
-        k.badge.textContent = '—'; k.bar.className = clsBar('bg-gray-200');
-      });
-      console.error(err);
-    } finally {
-      setLoading(false);
+    function setPill(el, text, classes) {
+      el.textContent = text;
+      el.className = `pill ${classes}`;
     }
-  }
+    function setNivelPill(level) {
+      const lv = (level || '').toLowerCase();
+      let c = 'pill ';
+      let t = '—';
+      if (lv.startsWith('verme')) { c += 'bg-red-100 text-red-700'; t = '🔴 VERMELHO'; }
+      else if (lv.startsWith('ama')) { c += 'bg-amber-100 text-amber-800'; t = '🟡 AMARELO'; }
+      else if (lv.startsWith('ver')) { c += 'bg-emerald-100 text-emerald-700'; t = '🟢 VERDE'; }
+      else { c += 'bg-gray-100 text-gray-700'; }
+      nivelPill.className = c; nivelPill.textContent = t;
+    }
 
-  // Inicial
-  carregarUltimosAlertas();
-  setupChartFromAPI();
-</script>
+    // ====== FETCH WRAPPER ====================================================
+    async function fetchJson(url, opts) {
+      const r = await fetch(url, opts);
+      if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+      return r.json();
+    }
+
+    // ====== CARREGAR FOCOS E DEFINIR KPI PROXY DESMATAMENTO =================
+    async function carregarFocos(params) {
+      focosLayer.clearLayers();
+      const qs = new URLSearchParams({ scope: "diario", region: "Brasil", limit: 300, ...params }).toString();
+      const data = await fetchJson(`${API}/api/inpe/focos?${qs}`);
+      const focos = (data.features && data.features.focos) || [];
+
+      const frps = [];
+      focos.forEach(f => {
+        if (Number.isFinite(+f.frp)) frps.push(+f.frp);
+        const m = L.circleMarker([f.latitude, f.longitude], {
+          radius: Math.max(3, Math.min(12, (f.frp || 1) / 8)),
+          color: '#b91c1c', weight: 1, fillOpacity: 0.75
+        }).bindPopup(`
+          <div><strong>${f.municipio || ''} - ${f.uf || ''}</strong></div>
+          <div>Satélite: ${f.satelite || '-'}</div>
+          <div>FRP: ${f.frp ?? '-'}</div>
+          <div>Bioma: ${f.bioma || '-'}</div>
+        `);
+        m.addTo(focosLayer);
+      });
+
+      if (focos.length) {
+        const bounds = L.latLngBounds(focos.map(f => [f.latitude, f.longitude]));
+        map.fitBounds(bounds.pad(0.2));
+      }
+
+      // KPI Focos
+      focosTitulo.textContent = focos.length ? (focos.length >= 150 ? 'Crítico' : focos.length >= 50 ? 'Alerta' : 'Baixo') : 'Baixo';
+      focosInfo.textContent   = `Focos: ${focos.length}`;
+      const focosClass = (focos.length >= 150) ? 'bg-red-100 text-red-700' : (focos.length >= 50) ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700';
+      setPill(focosBadge, focosTitulo.textContent, focosClass);
+
+      // KPI Desmatamento (proxy por FRP médio)
+      const avgFRP = frps.length ? (frps.reduce((a,b)=>a+b,0)/frps.length) : 0;
+      let desmLevel = 'Baixo', desmClass = 'bg-emerald-100 text-emerald-700';
+      if (avgFRP >= 7) { desmLevel = 'Alto'; desmClass = 'bg-red-100 text-red-700'; }
+      else if (avgFRP >= 3) { desmLevel = 'Moderado'; desmClass = 'bg-amber-100 text-amber-800'; }
+      desmTitulo.textContent = desmLevel;
+      desmInfo.textContent   = `FRP médio: ${avgFRP ? avgFRP.toFixed(1) : '—'}`;
+      setPill(desmBadge, desmLevel, desmClass);
+
+      return { count: focos.length, avgFRP };
+    }
+
+    // ====== ÚLTIMOS ALERTAS ==================================================
+    async function carregarUltimosAlertas() {
+      try {
+        const data = await fetchJson(`${API}/api/alertas?limit=5`);
+        alertasBox.textContent = JSON.stringify(data, null, 2);
+      } catch (e) {
+        alertasBox.textContent = `Erro ao carregar alertas: ${e.message}`;
+      }
+    }
+
+    // ====== EXECUÇÃO PRINCIPAL ==============================================
+    function getParamsFromUI() {
+      const cidade = elCidade.value.trim();
+      const lat = num(elLat.value, null);
+      const lon = num(elLon.value, null);
+      if (cidade) return { cidade };
+      if (lat === null || lon === null) throw new Error("Informe a cidade **ou** latitude/longitude válidos.");
+      return { lat, lon };
+    }
+    function extractCoords(resp, fallback) {
+      if (get(resp, 'params.lat') && get(resp, 'params.lon')) return { lat: resp.params.lat, lon: resp.params.lon };
+      if (get(resp, 'lat') && get(resp, 'lon')) return { lat: resp.lat, lon: resp.lon };
+      if (get(resp, 'params.resolve.lat') && get(resp, 'params.resolve.lon')) return { lat: resp.params.resolve.lat, lon: resp.params.resolve.lon };
+      return fallback;
+    }
+
+    function setLoading(on) { btnGo.disabled = on; }
+
+    async function executar() {
+      setLoading(true);
+      resumoBox.className = 'whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700';
+      try {
+        const uiParams = getParamsFromUI();
+        resumoBox.textContent = "Processando análise...";
+
+        // 1) Chama pipeline (faz geocode, coleta, calcula score + rainfall index)
+        const data = await fetchJson(`${API}/api/alertas_update`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...uiParams,
+            scope: "diario",
+            region: "Brasil",
+            raio_km: 150,
+            air_radius_m: 10000,
+            weather_provider: "open-meteo"
+          })
+        });
+
+        // 2) KPI ÁGUA (novo: usa breakdown.precip_24h_mm e precip_index)
+        const mm  = getPrecipMM(data);
+        const rix = getRainIndex(data);
+        const [lvlTxt, lvlClass, badgeTxt] = rainLevel(rix);
+        aguaTitulo.textContent = lvlTxt;
+        aguaInfo.textContent   = Number.isFinite(mm) ? `Chuva 24h: ${mm.toFixed(1)} mm` : 'Sem dados';
+        setPill(aguaBadge, badgeTxt, lvlClass);
+
+        // 3) KPI AR (PM2.5 se disponível)
+        const pm25 = num(get(data, 'air.features.pm25'), null)
+                  ?? num(get(data, 'air.pm25'), null);
+        if (Number.isFinite(pm25)) {
+          arTitulo.textContent = (pm25 < 12) ? 'Bom' : (pm25 < 35) ? 'Moderado' : 'Ruim';
+          arInfo.textContent   = `PM2.5: ${pm25.toFixed(1)} µg/m³`;
+          const c = (pm25 < 12) ? 'bg-emerald-100 text-emerald-700' : (pm25 < 35) ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700';
+          setPill(arBadge, arTitulo.textContent, c);
+        } else {
+          arTitulo.textContent = '—';
+          arInfo.textContent   = 'Sem dados';
+          setPill(arBadge, '—', 'bg-gray-100 text-gray-700');
+        }
+
+        // 4) Resultado da análise
+        setNivelPill(get(data, 'score.level', 'N/A'));
+        const resolved = get(data, 'params.resolve.display_name') || get(data, 'params.cidade') || elCidade.value.trim() || '—';
+        const when = get(data, 'score.alert_obs.meta.observed_at') || get(data, 'observed_at') || '—';
+        metaBox.innerHTML = `Local: <strong>${resolved}</strong> • Última observação: <strong>${when}</strong>`;
+
+        const s  = num(get(data, 'score.score'), null);
+        const br = get(data, 'score.breakdown', {});
+        scoreVal.textContent = (s !== null) ? s.toFixed(2) : '—';
+        sevVal.textContent   = Number.isFinite(+br.severity)  ? (+br.severity).toFixed(2)  : '—';
+        durVal.textContent   = Number.isFinite(+br.duration)  ? (+br.duration).toFixed(2)  : '—';
+        freqVal.textContent  = Number.isFinite(+br.frequency) ? (+br.frequency).toFixed(2) : '—';
+        impVal.textContent   = Number.isFinite(+br.impact)    ? (+br.impact).toFixed(2)    : '—';
+
+        // 5) Focos + Desmatamento proxy
+        const coords = extractCoords(data, uiParams);
+        const resFocos = await carregarFocos(coords);
+
+        resumoBox.classList.add('text-emerald-700', 'font-semibold');
+        resumoBox.textContent =
+          `Focos plotados: ${resFocos.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords, null, 2)}`;
+
+        // 6) Histórico (anexa ponto)
+        const ts = new Date().toLocaleDateString('pt-BR', { month:'2-digit', day:'2-digit' });
+        if (s !== null) {
+          riscoChart.data.labels.push(ts);
+          riscoChart.data.datasets[0].data.push(s);
+          if (riscoChart.data.labels.length > 20) {
+            riscoChart.data.labels.shift();
+            riscoChart.data.datasets[0].data.shift();
+          }
+          riscoChart.update();
+        }
+
+        // 7) Últimos alertas
+        await carregarUltimosAlertas();
+
+      } catch (err) {
+        resumoBox.classList.add('text-red-700', 'font-semibold');
+        resumoBox.textContent = `Erro: ${err.message}`;
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ====== EVENTS / INIT ====================================================
+    btnGo.addEventListener('click', executar);
+    elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
+    carregarUltimosAlertas();
+  </script>
 </body>
 </html>
