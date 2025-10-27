@@ -35,28 +35,29 @@
   <!-- HEADER -->
   <header class="sticky top-0 z-20 bg-white border-b border-gray-200">
   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
-    <div class="flex items-center gap-3 min-w-[280px]">
+    <div class="flex items-center gap-4 min-w-[280px]">
       <!-- Logo -->
       <img src="assets/logo.png" alt="AmazonSafe" class="h-[80px] w-[80px] rounded-full object-cover" />
 
-      <!-- Textos -->
-      <div class="flex flex-col">
-        <!-- Nome principal -->
-        <div class="text-4xl font-extrabold leading-tight">
+      <!-- Bloco de título + subtítulo com largura do título -->
+      <div class="inline-block" id="brandBlock">
+        <!-- Título: define a largura do bloco -->
+        <div class="text-4xl font-extrabold leading-tight whitespace-nowrap">
           Amazon<span class="text-emerald-600">Safe</span>
         </div>
 
-        <!-- Subtítulo (mesma largura que o nome) -->
-        <div class="text-base text-gray-600 -mt-1 tracking-tight">
+        <!-- Subtítulo: mesma largura do bloco acima, um pouco menor -->
+        <div class="text-[18px] text-gray-600 -mt-1 whitespace-nowrap">
           Monitoramento Ambiental Inteligente
         </div>
-
-        <!-- Badge da API (voltou para baixo, como antes) -->
-        <span class="mt-1 text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full w-fit">
-          API: amazonsafe-api.onrender.com
-        </span>
       </div>
+
+      <!-- Badge da API ao lado (não embaixo) -->
+      <span class="ml-3 text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full">
+        API: amazonsafe-api.onrender.com
+      </span>
     </div>
+
     <div class="ml-auto flex gap-2 flex-wrap">
       <input id="cidade" placeholder="Cidade (ex: Belém, PA)" class="p-2 border border-gray-300 rounded-lg min-w-[210px] text-gray-800" />
       <input id="lat" type="number" step="0.0001" placeholder="Lat" class="p-2 border border-gray-300 rounded-lg w-28 text-gray-800" />
