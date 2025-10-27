@@ -70,15 +70,27 @@
   <section class="lg:col-span-3">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <!-- Água -->
-      <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-        <div id="kpiBarAgua" class="h-1 bg-gray-200"></div>
-        <div class="p-4">
-          <p class="text-xs font-semibold uppercase text-gray-500">Água (chuva/cheia)</p>
-          <p id="kpiAguaText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
-          <div class="text-xs text-gray-600 mt-1"><span id="kpiAguaDetail">—</span></div>
-          <span id="kpiAguaBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
-        </div>
-      </div>
+<div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
+  <div id="kpiBarAgua" class="h-1 bg-gray-200"></div>
+  <div class="p-4">
+    <p class="text-xs font-semibold uppercase text-gray-500">Água (chuva/cheia)</p>
+    <p id="kpiAguaText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
+
+    <!-- detalhe principal (chuva ou nível do rio) -->
+    <div class="text-xs text-gray-600 mt-1">
+      <span id="kpiAguaDetail">—</span>
+    </div>
+
+    <!-- novo: mostra índice pluviométrico -->
+    <div class="text-xs text-gray-600 mt-1">
+      Índice pluviométrico: <b id="aguaIndex">—</b>
+    </div>
+
+    <span id="kpiAguaBadge"
+          class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+  </div>
+</div>
+
       <!-- Ar -->
       <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
         <div id="kpiBarAr" class="h-1 bg-gray-200"></div>
@@ -327,28 +339,53 @@
   function fmt(v){ return (typeof v === 'number') ? v.toFixed(2) : '—'; }
 
   // KPIs (Água/Ar/Desmat/Focos)
-  function updateKPI_Agua({rain24h, riverLevel, floodThres}) {
-    let category, bar, badge, detail;
-    if (typeof riverLevel === 'number' && typeof floodThres === 'number') {
-      const pct = (riverLevel / floodThres);
-      if (pct < 0.7){ category='Baixo';  badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
-      else if (pct < 1){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; }
-      else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; }
-      detail = `Nível do rio: ${riverLevel.toFixed(2)} m (limiar: ${floodThres.toFixed(2)} m)`;
-    } else if (typeof rain24h === 'number') {
-      if (rain24h < 10){ category='Baixo';  badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
-      else if (rain24h < 40){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; }
-      else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; }
-      detail = `Chuva 24h: ${rain24h.toFixed(1)} mm`;
-    } else {
-      category='—'; badge='bg-gray-100 text-gray-700'; bar='bg-gray-200'; detail='Sem dados';
-    }
-    KPI.agua.text.textContent = category;
-    KPI.agua.badge.className = clsBadge(badge);
-    KPI.agua.badge.textContent = category === '—' ? '—' : (category==='Baixo'?'💧 OK':category==='Alerta'?'💧 Alerta':'💧 Crítico');
-    KPI.agua.bar.className = clsBar(bar);
-    KPI.agua.detail.textContent = detail;
+  function updateKPI_Agua({precipIndex, rain24h, riverLevel, floodThres}) {
+  // Decide o que mostrar como “detalhe”: prioridade para nível do rio, depois chuva 24h
+  let category = '—', badge='bg-gray-100 text-gray-700', bar='bg-gray-200', detail='Sem dados';
+
+  if (typeof riverLevel === 'number' && typeof floodThres === 'number') {
+    const pct = (riverLevel / floodThres);
+    if (pct < 0.7){ category='Baixo';  badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
+    else if (pct < 1){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; }
+    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; }
+    detail = `Nível do rio: ${riverLevel.toFixed(2)} m (limiar: ${floodThres.toFixed(2)} m)`;
+
+  } else if (typeof rain24h === 'number') {
+    // Se quiser considerar 0 mm como “Baixo”, mantenha o <= 0 aqui
+    if (rain24h <= 0){ category='Baixo'; badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
+    else if (rain24h < 10){ category='Baixo';  badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
+    else if (rain24h < 40){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; }
+    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; }
+    detail = `Chuva 24h: ${rain24h.toFixed(1)} mm`;
   }
+
+  // Se vier o índice pluviométrico do backend, usamos para a “pílula” (cor/nível) e mostramos o valor
+  const idxEl = document.querySelector('#aguaIndex');
+  if (precipIndex != null) {
+    idxEl.textContent = precipIndex.toFixed(2);
+
+    if (precipIndex >= 0.66) {         // alto
+      category = 'Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600';
+    } else if (precipIndex >= 0.33) {  // médio
+      category = 'Alerta';  badge='bg-amber-100 text-amber-700'; bar='bg-amber-500';
+    } else {                           // baixo
+      // só rebaixa se ainda não foi classificado como crítico/alerta por nível do rio/chuva
+      if (category === '—' || category === 'Baixo') {
+        category = 'Baixo'; badge='bg-green-100 text-green-700'; bar='bg-green-500';
+      }
+    }
+  } else {
+    idxEl.textContent = '—';
+  }
+
+  KPI.agua.text.textContent = category;
+  KPI.agua.badge.className = clsBadge(badge);
+  KPI.agua.badge.textContent = category === '—' ? '—' :
+    (category==='Baixo'?'💧 OK':category==='Alerta'?'💧 Alerta':'💧 Crítico');
+  KPI.agua.bar.className = clsBar(bar);
+  KPI.agua.detail.textContent = detail;
+}
+
 
   function updateKPI_Ar({pm25, pm10}) {
     const val = (typeof pm25 === 'number') ? pm25 : (typeof pm10 === 'number' ? pm10 : null);
@@ -477,7 +514,7 @@
       metaBox.innerHTML = `Local: <strong>${resolved || '—'}</strong> • Última observação: <strong>${when || '—'}</strong>`;
 
       // 3) Score e breakdown
-      const br = data?.score?.breakdown || {};
+      const precipIndex = (typeof br.precip_index === 'number') ? br.precip_index : null;
       scoreVal.textContent = fmt(scoreNum);
       sevVal.textContent   = fmt(br.severity);
       durVal.textContent   = fmt(br.duration);
@@ -492,11 +529,11 @@
       const rain24 =
         pickNumber(data, [
           'weather.rain_mm_24h','weather.precip_sum_mm','weather.precipitation_24h',
-          'meteo.precip_sum_mm','rain_24h_mm','score.alert_obs.meta.precipitation'
+          'weather.features.precipitation','meteo.precip_sum_mm','rain_24h_mm',
+          'score.alert_obs.meta.precipitation'
         ]);
       const riverLevel = pickNumber(data, ['hydro.river_level_m']);
       const floodThres = pickNumber(data, ['hydro.flood_threshold_m']);
-      updateKPI_Agua({rain24h: rain24, riverLevel, floodThres});
 
       // ---- Ar: PM2.5/PM10 com busca robusta
       const pm25 = pickNumber(data, [
@@ -518,6 +555,9 @@
 
       // ---- Focos: quantidade
       updateKPI_Focos({count: stats.count});
+
+      // ----- Água: 
+      updateKPI_Agua({precipIndex, rain24h: rain24, riverLevel, floodThres});
 
       resumoBox.classList.add('text-green-700', 'font-semibold');
       resumoBox.textContent = `Focos plotados: ${stats.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords, null, 2)}`;
