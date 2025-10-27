@@ -143,38 +143,34 @@
             Local: <strong>—</strong> • Última observação: <strong>—</strong>
           </div>
 
-          <!-- Dentro do card Resultado da análise -->
-          <div class="grid grid-cols-2 gap-3 mt-2">
-            <div class="p-3 border rounded-lg">
-              <div class="text-xs text-gray-500">Score (0–1)</div>
-              <div class="text-xl font-bold"><span id="scoreValue">—</span></div>
+          <div class="grid grid-cols-2 gap-2 mt-3">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Score (0–1)</b>
+              <div id="scoreVal" class="text-xl font-mono text-emerald-800">—</div>
             </div>
-            <div class="p-3 border rounded-lg">
-              <div class="text-xs text-gray-500">Thresholds</div>
-              <div class="text-sm text-gray-700">
-                <span id="threshText">verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66</span>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Thresholds</b>
+              <div id="thresholds" class="text-xs font-mono text-gray-600">
+                verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66
               </div>
             </div>
-          
-            <div class="p-3 border rounded-lg">
-              <div class="text-xs text-gray-500">Severity</div>
-              <div class="text-lg font-semibold"><span id="sevValue">—</span></div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Severity</b>
+              <div id="sevVal" class="text-base font-mono text-gray-800">—</div>
             </div>
-            <div class="p-3 border rounded-lg">
-              <div class="text-xs text-gray-500">Duration</div>
-              <div class="text-lg font-semibold"><span id="durValue">—</span></div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Duration</b>
+              <div id="durVal" class="text-base font-mono text-gray-800">—</div>
             </div>
-          
-            <div class="p-3 border rounded-lg">
-              <div class="text-xs text-gray-500">Frequency</div>
-              <div class="text-lg font-semibold"><span id="freqValue">—</span></div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Frequency</b>
+              <div id="freqVal" class="text-base font-mono text-gray-800">—</div>
             </div>
-            <div class="p-3 border rounded-lg">
-              <div class="text-xs text-gray-500">Impact</div>
-              <div class="text-lg font-semibold"><span id="impValue">—</span></div>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+              <b class="block text-xs text-gray-600 mb-1">Impact</b>
+              <div id="impVal" class="text-base font-mono text-gray-800">—</div>
             </div>
           </div>
-
 
           <pre id="resumoBox" class="whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700"></pre>
         </div>
@@ -515,169 +511,5 @@
     elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
     carregarUltimosAlertas();
   </script>
-  <script>
-    // Mostra número com fallback visual
-    function safeNum(n, digits = 2) {
-      return (typeof n === "number" && isFinite(n)) ? n.toFixed(digits) : "—";
-    }
-  
-    // Resolve trilhas possíveis no JSON (API pode mudar ligeiramente a forma)
-    function pickScoreBundle(api) {
-      // exemplos já vistos nos seus logs:
-      // { score: {..., breakdown:{...}, alert_obs:{...}} }
-      // { result:{ score:{...} } }
-      // { persisted:{ ... }, score:{...} }
-      const scoreObj =
-        api?.score ??
-        api?.result?.score ??
-        api?.persisted?.score ?? null;
-  
-      // breakdown pode vir dentro de score.breakdown
-      // ou como alert_obs no root (quando você persistiu os obs)
-      const breakdown =
-        scoreObj?.breakdown ??
-        api?.alert_obs ??
-        api?.score?.alert_obs ?? null;
-  
-      return { scoreObj, breakdown };
-    }
-  
-    // Preenche o painel "Resultado da análise"
-    function renderAnalysis(api) {
-      // log de inspeção – ajuda a debugar se vier vazio
-      console.debug("API (chaves):", Object.keys(api || {}));
-      console.debug("API exemplo:", api);
-  
-      const { scoreObj, breakdown } = pickScoreBundle(api);
-  
-      const $score = document.getElementById("scoreValue");
-      const $sev   = document.getElementById("sevValue");
-      const $dur   = document.getElementById("durValue");
-      const $freq  = document.getElementById("freqValue");
-      const $imp   = document.getElementById("impValue");
-  
-      if (!$score || !$sev || !$dur || !$freq || !$imp) {
-        console.warn("IDs do painel de análise não encontrados no DOM.");
-        return;
-      }
-  
-      // Se não veio score nenhum, mantenha traços e mostre aviso no console
-      if (!scoreObj && !breakdown) {
-        console.warn("Sem score/breakdown na resposta da API.");
-        $score.textContent = "—";
-        $sev.textContent   = "—";
-        $dur.textContent   = "—";
-        $freq.textContent  = "—";
-        $imp.textContent   = "—";
-        return;
-      }
-  
-      // Score numérico e nível (opcional)
-      $score.textContent = safeNum(scoreObj?.score, 2);
-  
-      // Campos do breakdown
-      $sev.textContent  = safeNum(breakdown?.severity, 2);
-      $dur.textContent  = safeNum(breakdown?.duration, 2);
-      $freq.textContent = safeNum(breakdown?.frequency, 2);
-      $imp.textContent  = safeNum(breakdown?.impact, 2);
-    }
-  </script>
-<script>
-/* ============ Helpers (cria só se ainda não existirem) ============ */
-window.safeNum ||= function(n, d = 2) {
-  return (typeof n === "number" && isFinite(n)) ? n.toFixed(d) : "—";
-};
-
-window.pickScoreBundle ||= function(api) {
-  const scoreObj =
-    api?.score ??
-    api?.result?.score ??
-    api?.persisted?.score ?? null;
-
-  const breakdown =
-    scoreObj?.breakdown ??
-    api?.alert_obs ??
-    api?.score?.alert_obs ?? null;
-
-  return { scoreObj, breakdown };
-};
-
-window.renderAnalysis ||= function(api) {
-  const { scoreObj, breakdown } = pickScoreBundle(api);
-  const $score = document.getElementById("scoreValue");
-  const $sev   = document.getElementById("sevValue");
-  const $dur   = document.getElementById("durValue");
-  const $freq  = document.getElementById("freqValue");
-  const $imp   = document.getElementById("impValue");
-  if (!$score || !$sev || !$dur || !$freq || !$imp) return;
-
-  if (!scoreObj && !breakdown) {
-    $score.textContent = $sev.textContent =
-    $dur.textContent   = $freq.textContent =
-    $imp.textContent   = "—";
-    return;
-  }
-  $score.textContent = safeNum(scoreObj?.score, 2);
-  $sev.textContent   = safeNum(breakdown?.severity, 2);
-  $dur.textContent   = safeNum(breakdown?.duration, 2);
-  $freq.textContent  = safeNum(breakdown?.frequency, 2);
-  $imp.textContent   = safeNum(breakdown?.impact, 2);
-};
-
-window.getWaterValue ||= function(api) {
-  const v1 = api?.score?.alert_obs?.meta?.precipitation;
-  const v2 = api?.weather?.precipitation;
-  const v3 = api?.water?.precipitation;
-  const raw = (v1 ?? v2 ?? v3);
-  if (raw === null || raw === undefined || Number.isNaN(Number(raw))) return null;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : null;
-};
-
-window.renderWater ||= function(api) {
-  const val = getWaterValue(api);
-  const $aguaValue = document.getElementById("aguaValue");
-  const $aguaBadge = document.getElementById("aguaBadge");
-  if (!$aguaValue) return;
-
-  if (val === null) {
-    $aguaValue.textContent = "Sem dados";
-    if ($aguaBadge) $aguaBadge.textContent = "—";
-    return;
-  }
-  $aguaValue.textContent = `${val.toFixed(1)} mm`;
-  if ($aguaBadge) {
-    let label = "Baixo";
-    if (val >= 50) label = "Crítico";
-    else if (val >= 20) label = "Alto";
-    else if (val >= 5) label = "Moderado";
-    $aguaBadge.textContent = label;
-  }
-};
-
-/* ============ Hook de fetch (não-intrusivo) ============ */
-/* Intercepta chamadas à API principal, clona a resposta JSON e dispara os renders.
-   Não altera teu fluxo nem layout. */
-(function attachAnalysisHook(){
-  const ORIG_FETCH = window.fetch.bind(window);
-  window.fetch = async function(input, init) {
-    const res = await ORIG_FETCH(input, init);
-    try {
-      const url = typeof input === 'string' ? input : input?.url;
-      if (url && url.includes('/api/alertas_update')) {
-        const clone = res.clone();
-        // pode falhar se não for JSON — por isso o try isolado
-        const data = await clone.json();
-        renderAnalysis(data);
-        renderWater(data);
-      }
-    } catch (e) {
-      console.warn('Hook análise: não deu pra ler JSON da resposta', e);
-    }
-    return res; // mantém o comportamento original
-  };
-})();
-</script>
-
 </body>
 </html>
