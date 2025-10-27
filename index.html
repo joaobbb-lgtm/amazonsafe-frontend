@@ -14,16 +14,13 @@
           colors: {
             c1: '#10b981',       // green-500
             c2: '#064e3b',       // green-900
-            'ok-status': '#10b981',
-            'alert-status': '#f59e0b',
-            'crit-status': '#b91c1c',
           }
         }
       }
     }
   </script>
 
-  <!-- Chart.js (para histórico) -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
   <!-- Leaflet -->
@@ -36,7 +33,7 @@
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-<!-- HEADER (banner + controles) -->
+<!-- HEADER -->
 <header class="sticky top-0 z-20 border-b border-gray-200 bg-white">
   <div class="mx-auto max-w-7xl px-4 py-3">
     <div class="flex items-center gap-4 flex-wrap">
@@ -49,12 +46,10 @@
           </div>
           <div class="text-sm text-gray-600 -mt-0.5">Monitoramento Ambiental Inteligente</div>
         </div>
-
         <span class="ml-2 text-xs bg-indigo-50 text-indigo-900 px-3 py-1 rounded-full">
           API: amazonsafe-api.onrender.com
         </span>
       </div>
-
       <!-- Controles -->
       <div class="ml-auto flex gap-2 flex-wrap">
         <input id="cidade" placeholder="Cidade (ex: Belém-PA)" class="p-2 border border-gray-300 rounded-lg min-w-[180px] focus:outline-none focus:ring-2 focus:ring-c1" />
@@ -71,43 +66,47 @@
 <!-- LAYOUT -->
 <main class="mx-auto max-w-7xl p-3 lg:p-4 grid lg:grid-cols-3 gap-3">
 
-  <!-- KPIs (dinâmicos com breakdown) -->
+  <!-- KPIs: Água / Ar / Desmatamento / Focos -->
   <section class="lg:col-span-3">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <!-- Severity -->
+      <!-- Água -->
       <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-        <div id="kpiBarSeverity" class="h-1 bg-gray-200"></div>
+        <div id="kpiBarAgua" class="h-1 bg-gray-200"></div>
         <div class="p-4">
-          <p class="text-xs font-semibold uppercase text-gray-500">Gravidade (severity)</p>
-          <p id="kpiSeverityText" class="text-3xl font-bold text-gray-900 mt-1">—</p>
-          <span id="kpiSeverityBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+          <p class="text-xs font-semibold uppercase text-gray-500">Água (chuva/cheia)</p>
+          <p id="kpiAguaText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
+          <div class="text-xs text-gray-600 mt-1"><span id="kpiAguaDetail">—</span></div>
+          <span id="kpiAguaBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
         </div>
       </div>
-      <!-- Duration -->
+      <!-- Ar -->
       <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-        <div id="kpiBarDuration" class="h-1 bg-gray-200"></div>
+        <div id="kpiBarAr" class="h-1 bg-gray-200"></div>
         <div class="p-4">
-          <p class="text-xs font-semibold uppercase text-gray-500">Duração (duration)</p>
-          <p id="kpiDurationText" class="text-3xl font-bold text-gray-900 mt-1">—</p>
-          <span id="kpiDurationBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+          <p class="text-xs font-semibold uppercase text-gray-500">Qualidade do Ar</p>
+          <p id="kpiArText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
+          <div class="text-xs text-gray-600 mt-1"><span id="kpiArDetail">—</span></div>
+          <span id="kpiArBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
         </div>
       </div>
-      <!-- Frequency -->
+      <!-- Desmatamento (proxy FRP médio) -->
       <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-        <div id="kpiBarFrequency" class="h-1 bg-gray-200"></div>
+        <div id="kpiBarDesmat" class="h-1 bg-gray-200"></div>
         <div class="p-4">
-          <p class="text-xs font-semibold uppercase text-gray-500">Frequência</p>
-          <p id="kpiFrequencyText" class="text-3xl font-bold text-gray-900 mt-1">—</p>
-          <span id="kpiFrequencyBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+          <p class="text-xs font-semibold uppercase text-gray-500">Desmatamento (proxy)</p>
+          <p id="kpiDesmatText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
+          <div class="text-xs text-gray-600 mt-1"><span id="kpiDesmatDetail">—</span></div>
+          <span id="kpiDesmatBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
         </div>
       </div>
-      <!-- Impact -->
+      <!-- Focos -->
       <div class="bg-white rounded-xl shadow border border-gray-200 overflow-hidden">
-        <div id="kpiBarImpact" class="h-1 bg-gray-200"></div>
+        <div id="kpiBarFocos" class="h-1 bg-gray-200"></div>
         <div class="p-4">
-          <p class="text-xs font-semibold uppercase text-gray-500">Impacto</p>
-          <p id="kpiImpactText" class="text-3xl font-bold text-gray-900 mt-1">—</p>
-          <span id="kpiImpactBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
+          <p class="text-xs font-semibold uppercase text-gray-500">Focos de Incêndio</p>
+          <p id="kpiFocosText" class="text-2xl md:text-3xl font-bold text-gray-900 mt-1">—</p>
+          <div class="text-xs text-gray-600 mt-1"><span id="kpiFocosDetail">—</span></div>
+          <span id="kpiFocosBadge" class="inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 bg-gray-100 text-gray-700">—</span>
         </div>
       </div>
     </div>
@@ -120,8 +119,6 @@
 
   <!-- DASHBOARD -->
   <aside class="dash lg:col-span-1 flex flex-col gap-4 overflow-y-auto pr-1">
-
-    <!-- Histórico (Chart.js) -->
     <div class="bg-white p-4 border border-gray-200 rounded-xl shadow">
       <h3 class="text-lg font-semibold text-gray-800 mb-3">Histórico de Risco</h3>
       <div class="h-40">
@@ -129,7 +126,6 @@
       </div>
     </div>
 
-    <!-- Resultado da análise -->
     <div class="bg-white p-4 border border-gray-200 rounded-xl shadow">
       <div class="flex items-center gap-3 flex-wrap">
         <strong class="text-xl font-bold text-gray-900">Resultado da análise</strong>
@@ -167,7 +163,6 @@
       <pre id="resumoBox" class="whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700"></pre>
     </div>
 
-    <!-- Últimos alertas -->
     <div class="bg-white p-4 border border-gray-200 rounded-xl shadow">
       <div class="flex justify-between items-center gap-2">
         <strong class="text-lg font-semibold text-gray-900">Últimos alertas</strong>
@@ -203,12 +198,14 @@
   const impVal = document.querySelector('#impVal');
 
   // KPI elements
-  const kpi = {
-    severity: {text: document.querySelector('#kpiSeverityText'), badge: document.querySelector('#kpiSeverityBadge'), bar: document.querySelector('#kpiBarSeverity')},
-    duration: {text: document.querySelector('#kpiDurationText'), badge: document.querySelector('#kpiDurationBadge'), bar: document.querySelector('#kpiBarDuration')},
-    frequency:{text: document.querySelector('#kpiFrequencyText'),badge: document.querySelector('#kpiFrequencyBadge'), bar: document.querySelector('#kpiBarFrequency')},
-    impact:   {text: document.querySelector('#kpiImpactText'),   badge: document.querySelector('#kpiImpactBadge'),   bar: document.querySelector('#kpiBarImpact')}
+  const KPI = {
+    agua:   { text: qs('#kpiAguaText'),   badge: qs('#kpiAguaBadge'),   bar: qs('#kpiBarAgua'),   detail: qs('#kpiAguaDetail') },
+    ar:     { text: qs('#kpiArText'),     badge: qs('#kpiArBadge'),     bar: qs('#kpiBarAr'),     detail: qs('#kpiArDetail') },
+    desmat: { text: qs('#kpiDesmatText'), badge: qs('#kpiDesmatBadge'), bar: qs('#kpiBarDesmat'), detail: qs('#kpiDesmatDetail') },
+    focos:  { text: qs('#kpiFocosText'),  badge: qs('#kpiFocosBadge'),  bar: qs('#kpiBarFocos'),  detail: qs('#kpiFocosDetail') },
   };
+
+  function qs(sel){ return document.querySelector(sel); }
 
   // ---- Mapa
   const map = L.map('map').setView([-3.1, -60.0], 5);
@@ -265,22 +262,6 @@
     if (on) btnGo.classList.add('opacity-60'); else btnGo.classList.remove('opacity-60');
   }
 
-  function classifyByScore(score) {
-    if (typeof score !== 'number') return {level:'N/A', cls:'bg-gray-100 text-gray-800', emoji:'⚪'};
-    if (score < 0.33)  return {level:'VERDE',   cls:'bg-green-100 text-green-800',  emoji:'🟢'};
-    if (score < 0.66)  return {level:'AMARELO', cls:'bg-amber-100 text-amber-800',  emoji:'🟡'};
-    return                {level:'VERMELHO', cls:'bg-red-100 text-red-700',    emoji:'🔴'};
-  }
-
-  function fmt(v){ return (typeof v === 'number') ? v.toFixed(2) : '—'; }
-
-  function colorForKPI(v){
-    if (typeof v !== 'number') return {badge:'bg-gray-100 text-gray-700', bar:'bg-gray-200'};
-    if (v < .33) return {badge:'bg-green-100 text-green-700', bar:'bg-green-500'};
-    if (v < .66) return {badge:'bg-amber-100 text-amber-700', bar:'bg-amber-500'};
-    return {badge:'bg-red-100 text-red-700', bar:'bg-red-600'};
-  }
-
   async function fetchJson(url, opts) {
     const r = await fetch(url, opts);
     if (!r.ok) {
@@ -308,6 +289,102 @@
     return fallback;
   }
 
+  // Categorizações e estilos
+  function clsBadge(color){ return `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${color}`; }
+  function clsBar(color){ return `h-1 ${color}`; }
+
+  function updateKPI_Agua({rain24h, riverLevel, floodThres}) {
+    // prioridade: nível do rio se disponível
+    let category, bar, badge, detail;
+    if (typeof riverLevel === 'number' && typeof floodThres === 'number') {
+      const pct = (riverLevel / floodThres);
+      if (pct < 0.7){ category='Baixo';  badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
+      else if (pct < 1){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; }
+      else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; }
+      detail = `Nível do rio: ${riverLevel.toFixed(2)} m (limiar: ${floodThres.toFixed(2)} m)`;
+    } else if (typeof rain24h === 'number') {
+      if (rain24h < 10){ category='Baixo';  badge='bg-green-100 text-green-700'; bar='bg-green-500'; }
+      else if (rain24h < 40){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; }
+      else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; }
+      detail = `Chuva 24h: ${rain24h.toFixed(1)} mm`;
+    } else {
+      category='—'; badge='bg-gray-100 text-gray-700'; bar='bg-gray-200'; detail='Sem dados';
+    }
+    KPI.agua.text.textContent = category;
+    KPI.agua.badge.className = clsBadge(badge);
+    KPI.agua.badge.textContent = category === '—' ? '—' : (category==='Baixo'?'💧 OK':category==='Alerta'?'💧 Alerta':'💧 Crítico');
+    KPI.agua.bar.className = clsBar(bar);
+    KPI.agua.detail.textContent = detail;
+  }
+
+  function updateKPI_Ar({pm25, pm10}) {
+    const val = (typeof pm25 === 'number') ? pm25 : (typeof pm10 === 'number' ? pm10 : null);
+    let category, badge, bar, detail;
+    if (val === null){ category='—'; badge='bg-gray-100 text-gray-700'; bar='bg-gray-200'; detail='Sem dados'; }
+    else if (val < 15){ category='Bom'; badge='bg-green-100 text-green-700'; bar='bg-green-500'; detail=`PM2.5: ${val.toFixed(1)} µg/m³`; }
+    else if (val < 35){ category='Moderado'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; detail=`PM2.5: ${val.toFixed(1)} µg/m³`; }
+    else if (val < 55){ category='Ruim'; badge='bg-orange-200 text-orange-800'; bar='bg-orange-500'; detail=`PM2.5: ${val.toFixed(1)} µg/m³`; }
+    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; detail=`PM2.5: ${val.toFixed(1)} µg/m³`; }
+    KPI.ar.text.textContent = category;
+    KPI.ar.badge.className = clsBadge(badge);
+    KPI.ar.badge.textContent = category === '—' ? '—' : (category==='Bom'?'💨 Bom':category==='Moderado'?'💨 Moderado':category==='Ruim'?'💨 Ruim':'💨 Crítico');
+    KPI.ar.bar.className = clsBar(bar);
+    KPI.ar.detail.textContent = detail;
+  }
+
+  function updateKPI_Desmat({avgFRP}) {
+    let category, badge, bar, detail;
+    if (typeof avgFRP !== 'number'){ category='—'; badge='bg-gray-100 text-gray-700'; bar='bg-gray-200'; detail='Sem dados'; }
+    else if (avgFRP < 20){ category='Baixo'; badge='bg-green-100 text-green-700'; bar='bg-green-500'; detail=`FRP médio: ${avgFRP.toFixed(1)}`; }
+    else if (avgFRP < 40){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; detail=`FRP médio: ${avgFRP.toFixed(1)}`; }
+    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; detail=`FRP médio: ${avgFRP.toFixed(1)}`; }
+    KPI.desmat.text.textContent = category;
+    KPI.desmat.badge.className = clsBadge(badge);
+    KPI.desmat.badge.textContent = category === '—' ? '—' : (category==='Baixo'?'🌲 Baixo':category==='Alerta'?'🌲 Alerta':'🌲 Crítico');
+    KPI.desmat.bar.className = clsBar(bar);
+    KPI.desmat.detail.textContent = detail;
+  }
+
+  function updateKPI_Focos({count}) {
+    let category, badge, bar, detail;
+    if (typeof count !== 'number'){ category='—'; badge='bg-gray-100 text-gray-700'; bar='bg-gray-200'; detail='Sem dados'; }
+    else if (count < 40){ category='Baixo'; badge='bg-green-100 text-green-700'; bar='bg-green-500'; detail=`Focos: ${count}`; }
+    else if (count < 120){ category='Alerta'; badge='bg-amber-100 text-amber-700'; bar='bg-amber-500'; detail=`Focos: ${count}`; }
+    else { category='Crítico'; badge='bg-red-100 text-red-700'; bar='bg-red-600'; detail=`Focos: ${count}`; }
+    KPI.focos.text.textContent = category;
+    KPI.focos.badge.className = clsBadge(badge);
+    KPI.focos.badge.textContent = category === '—' ? '—' : (category==='Baixo'?'🔥 Baixo':category==='Alerta'?'🔥 Alerta':'🔥 Crítico');
+    KPI.focos.bar.className = clsBar(bar);
+    KPI.focos.detail.textContent = detail;
+  }
+
+  function classifyByScore(score) {
+    if (typeof score !== 'number') return {level:'N/A', cls:'bg-gray-100 text-gray-800', emoji:'⚪'};
+    if (score < 0.33)  return {level:'VERDE',   cls:'bg-green-100 text-green-800',  emoji:'🟢'};
+    if (score < 0.66)  return {level:'AMARELO', cls:'bg-amber-100 text-amber-800',  emoji:'🟡'};
+    return                {level:'VERMELHO', cls:'bg-red-100 text-red-700',    emoji:'🔴'};
+  }
+  function fmt(v){ return (typeof v === 'number') ? v.toFixed(2) : '—'; }
+
+  async function carregarUltimosAlertas() {
+    try {
+      alertasBox.textContent = "Carregando últimos alertas...";
+      const data = await fetchJson(`${API}/api/alertas?limit=5`);
+      alertasBox.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      alertasBox.textContent = `Erro ao carregar alertas: ${err.message}`;
+    }
+  }
+
+  // Estatística dos focos para KPIs
+  function focosStats(focos){
+    if (!Array.isArray(focos) || !focos.length) return {count:0, avg_frp:null, max_frp:null};
+    let sum=0, cnt=0, max=null;
+    focos.forEach(f=>{ const v = Number(f.frp); if(!isNaN(v)){ sum+=v; cnt++; max = (max===null? v : Math.max(max,v)); }});
+    return {count:focos.length, avg_frp: cnt? (sum/cnt): null, max_frp:max};
+  }
+
+  // ---- Leaflet focos
   async function carregarFocos(params) {
     focosLayer.clearLayers();
     const qs = new URLSearchParams({ scope: "diario", region: "Brasil", limit: 300, ...params }).toString();
@@ -331,10 +408,14 @@
       const bounds = L.latLngBounds(focos.map(f => [f.latitude, f.longitude]));
       map.fitBounds(bounds.pad(0.2));
     }
-    return { count: focos.length, params };
+
+    return { focos, stats: focosStats(focos), params };
   }
 
   // ---- Fluxo principal
+  btnGo.addEventListener('click', executar);
+  elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
+
   async function executar() {
     setLoading(true);
     resumoBox.className = 'whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700';
@@ -356,7 +437,7 @@
         })
       });
 
-      // 2) Calcular nível a partir do score (garante consistência)
+      // 2) Level por score
       const scoreNum = (typeof data?.score?.score === 'number') ? data.score.score : null;
       const lv = classifyByScore(scoreNum);
       nivelPill.className = `px-3 py-1 text-sm font-bold rounded-full ${lv.cls}`;
@@ -376,19 +457,36 @@
       freqVal.textContent  = fmt(br.frequency);
       impVal.textContent   = fmt(br.impact);
 
-      // KPIs com cores
-      const sC = colorForKPI(br.severity);   kpi.severity.text.textContent = fmt(br.severity);   kpi.severity.badge.className = `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${sC.badge}`;  kpi.severity.badge.textContent='•'; kpi.severity.bar.className = `h-1 ${sC.bar}`;
-      const dC = colorForKPI(br.duration);   kpi.duration.text.textContent = fmt(br.duration);   kpi.duration.badge.className = `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${dC.badge}`;  kpi.duration.badge.textContent='•'; kpi.duration.bar.className = `h-1 ${dC.bar}`;
-      const fC = colorForKPI(br.frequency);  kpi.frequency.text.textContent= fmt(br.frequency);  kpi.frequency.badge.className= `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${fC.badge}`;  kpi.frequency.badge.textContent='•'; kpi.frequency.bar.className = `h-1 ${fC.bar}`;
-      const iC = colorForKPI(br.impact);     kpi.impact.text.textContent   = fmt(br.impact);     kpi.impact.badge.className   = `inline-flex items-center text-xs font-medium px-2.5 py-0.5 rounded-full mt-2 ${iC.badge}`;   kpi.impact.badge.textContent='•'; kpi.impact.bar.className = `h-1 ${iC.bar}`;
-
-      // 4) Focos
+      // 4) Focos + KPIs Focos/Desmatamento
       const coords = extractCoords(data, uiParams);
-      const res = await carregarFocos(coords);
-      resumoBox.classList.add('text-green-700', 'font-semibold');
-      resumoBox.textContent = `Focos plotados: ${res.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords, null, 2)}`;
+      const {focos, stats} = await carregarFocos(coords);
 
-      // 5) Últimos alertas + gráfico histórico
+      // KPIs: Ar / Água / Desmat / Focos
+      // ---- Água: tenta detectar campos comuns de chuva ou nível do rio
+      const rain24 =
+        data?.weather?.rain_mm_24h ??
+        data?.meteo?.precip_sum_mm ??
+        data?.rain_24h_mm ??
+        null;
+      const riverLevel   = data?.hydro?.river_level_m ?? null;
+      const floodThres   = data?.hydro?.flood_threshold_m ?? null;
+      updateKPI_Agua({rain24h: rain24, riverLevel, floodThres});
+
+      // ---- Ar: PM2.5/PM10
+      const pm25 = data?.air?.pm25 ?? data?.air_quality?.pm25 ?? null;
+      const pm10 = data?.air?.pm10 ?? data?.air_quality?.pm10 ?? null;
+      updateKPI_Ar({pm25, pm10});
+
+      // ---- Desmatamento: FRP médio como proxy
+      updateKPI_Desmat({avgFRP: stats.avg_frp});
+
+      // ---- Focos: quantidade
+      updateKPI_Focos({count: stats.count});
+
+      resumoBox.classList.add('text-green-700', 'font-semibold');
+      resumoBox.textContent = `Focos plotados: ${stats.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords, null, 2)}`;
+
+      // 5) Últimos alertas + gráfico
       await carregarUltimosAlertas();
       await setupChartFromAPI();
 
@@ -396,25 +494,22 @@
       resumoBox.classList.add('text-red-700', 'font-semibold');
       resumoBox.textContent = `Erro: ${err.message}`;
       scoreVal.textContent = sevVal.textContent = durVal.textContent = freqVal.textContent = impVal.textContent = '—';
+      // KPI reset
+      [KPI.agua, KPI.ar, KPI.desmat, KPI.focos].forEach(k=> {
+        k.text.textContent = '—'; k.detail.textContent = 'Sem dados';
+        k.badge.className = clsBadge('bg-gray-100 text-gray-700');
+        k.badge.textContent = '—'; k.bar.className = clsBar('bg-gray-200');
+      });
       console.error(err);
     } finally {
       setLoading(false);
     }
   }
 
-  async function carregarUltimosAlertas() {
-    try {
-      alertasBox.textContent = "Carregando últimos alertas...";
-      const data = await fetchJson(`${API}/api/alertas?limit=5`);
-      alertasBox.textContent = JSON.stringify(data, null, 2);
-    } catch (err) {
-      alertasBox.textContent = `Erro ao carregar alertas: ${err.message}`;
-    }
+  async function setLoading(on){
+    btnGo.disabled = on;
+    document.body.classList.toggle('cursor-progress', on);
   }
-
-  // Eventos
-  btnGo.addEventListener('click', executar);
-  elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
 
   // Inicial
   carregarUltimosAlertas();
