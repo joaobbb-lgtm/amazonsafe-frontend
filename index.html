@@ -150,29 +150,24 @@
           <b class="block text-xs text-gray-600 mb-1">Score (0–1)</b>
           <div id="scoreValue" class="text-xl font-mono text-emerald-800">—</div>
         </div>
-    
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <b class="block text-xs text-gray-600 mb-1">Thresholds</b>
           <div id="threshText" class="text-xs font-mono text-gray-600">
             verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66
           </div>
         </div>
-    
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <b class="block text-xs text-gray-600 mb-1">Severity</b>
           <div id="sevValue" class="text-base font-mono text-gray-800">—</div>
         </div>
-    
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <b class="block text-xs text-gray-600 mb-1">Duration</b>
           <div id="durValue" class="text-base font-mono text-gray-800">—</div>
         </div>
-    
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <b class="block text-xs text-gray-600 mb-1">Frequency</b>
           <div id="freqValue" class="text-base font-mono text-gray-800">—</div>
         </div>
-    
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <b class="block text-xs text-gray-600 mb-1">Impact</b>
           <div id="impValue" class="text-base font-mono text-gray-800">—</div>
@@ -181,7 +176,6 @@
     
       <pre id="resumoBox" class="whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700"></pre>
     </div>
-
 
         <!-- Últimos alertas -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -454,7 +448,7 @@
           kpiArTop.className = 'border-b-4 rounded-t-xl border-gray-300';
         } else if (Number.isFinite(pm25)) {
           arTitulo.textContent = (pm25 < 12) ? 'Bom' : (pm25 < 35) ? 'Moderado' : 'Ruim';
-          arInfo.textContent   = `PM2.5: ${pm25.toFixed(1)} µg/m³`;
+          arInfo.textContent = `PM2.5: ${safeNum(pm25,1)} µg/m³`;
           const c = (pm25 < 12) ? 'bg-emerald-100 text-emerald-700' : (pm25 < 35) ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700';
           setPill(arBadge, arTitulo.textContent, c);
           kpiArTop.className = 'border-b-4 rounded-t-xl ' + ((pm25 < 12) ? 'border-emerald-500' : (pm25 < 35) ? 'border-amber-500' : 'border-red-600');
@@ -465,35 +459,32 @@
           kpiArTop.className = 'border-b-4 rounded-t-xl border-gray-300';
         }
 
-        // 4) Resultado da análise (usa cor que vem do backend)
+                // 4) Resultado da análise (usa cor que vem do backend)
         const level   = get(data, 'score.level', 'N/A');
         const lvColor = get(data, 'score.level_color') || get(data, 'color'); // compat
         setNivelPill(level, lvColor);
-
+        
         const resolved = get(data, 'params.resolve.display_name') || get(data, 'params.cidade') || elCidade.value.trim() || '—';
         const when = get(data, 'score.alert_obs.meta.observed_at') || get(data, 'observed_at') || '—';
         metaBox.innerHTML = `Local: <strong>${resolved}</strong> • Última observação: <strong>${when}</strong>`;
-
-        const s  = num(get(data, 'score.score'), null);
-        const br = get(data, 'score.breakdown', {});
-        scoreVal.textContent = (s !== null) ? s.toFixed(2) : '—';
-        sevVal.textContent   = Number.isFinite(+br.severity)  ? (+br.severity).toFixed(2)  : '—';
-        durVal.textContent   = Number.isFinite(+br.duration)  ? (+br.duration).toFixed(2)  : '—';
-        freqVal.textContent  = Number.isFinite(+br.frequency) ? (+br.frequency).toFixed(2) : '—';
-        impVal.textContent   = Number.isFinite(+br.impact)    ? (+br.impact).toFixed(2)    : '—';
-
+        
+        // 👉 agora usamos as funções tolerantes
+        try { renderAnalysis(data); } catch(e){ console.error(e); }
+        try { renderWater(data);   } catch(e){ console.error(e); }
+        
         // 5) Focos + Desmatamento proxy
         const coords = extractCoords(data, uiParams);
         const resFocos = await carregarFocos(coords);
-
+        
         resumoBox.classList.add('text-emerald-700', 'font-semibold');
         resumoBox.textContent =
           `Focos plotados: ${resFocos.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords, null, 2)}`;
-        renderAnalysis(data);   // preenche Score/Severity/Duration/Frequency/Impact
-        renderWater(data);      // corrige Água (0.0 mm não vira "Sem dados")
+        
+        const s = Number(get(data, 'score.score', NaN));
+
         // 6) Histórico (anexa ponto)
-        const ts = new Date().toLocaleDateString('pt-BR', { month:'2-digit', day:'2-digit' });
-        if (s !== null) {
+        const ts = new Date().toLocaleString('pt-BR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+        if (Number.isFinite(s)) {
           riscoChart.data.labels.push(ts);
           riscoChart.data.datasets[0].data.push(s);
           if (riscoChart.data.labels.length > 20) {
@@ -523,15 +514,22 @@
     // ================= helpers pequenos =================
     function safeNum(n, d = 2) { return (typeof n === "number" && isFinite(n)) ? n.toFixed(d) : "—"; }
     function _get(o, p, def) { try { return p.split('.').reduce((a, k) => a?.[k], o) ?? def; } catch { return def; } }
-
-    // (você já tem _pickScore em outro lugar; se não tiver, descomente abaixo)
-    /*
-    function _pickScore(api){
-      const scoreObj = api?.score ?? api?.result?.score ?? api?.persisted?.score ?? null;
-      const breakdown = scoreObj?.breakdown ?? api?.alert_obs ?? api?.score?.alert_obs ?? null;
-      return { scoreObj, breakdown };
+    function pickEl(...ids) {
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (el) return el;
+      }
+      return null;
     }
-    */
+    // aliases p/ compatibilidade
+    const get = (typeof _get === 'function')
+      ? _get
+      : (o,p,def) => { try { return p.split('.').reduce((a,k)=>a?.[k], o) ?? def; } catch { return def; } };
+    
+    function num(v, d=null){
+      const n = Number(v);
+      return Number.isFinite(n) ? n : d;
+    }
 
     // ================= fallbacks para não deixar a UI vazia =================
     function fallbackBreakdown(api){
@@ -553,33 +551,65 @@
     }
 
     // ================= Resultado da análise (tolerante) =================
+   
     function renderAnalysis(api){
-      const note  = document.getElementById('analysisNote'); // <span id="analysisNote"> é opcional
-      const $score = document.getElementById("scoreValue");
-      const $sev   = document.getElementById("sevValue");
-      const $dur   = document.getElementById("durValue");
-      const $freq  = document.getElementById("freqValue");
-      const $imp   = document.getElementById("impValue");
-      if(!$score || !$sev || !$dur || !$freq || !$imp) return;
-
-      // avisa quando o backend falhar o cálculo (ex.: "_rainfall_index is not defined")
-      const apiErr = api?.errors?.alert_score;
-      if (note) note.textContent = apiErr ? "sem cálculo (erro da API)" : "";
-
-      // pega o que vier da API
-      let { scoreObj, breakdown } = _pickScore(api);
-
-      // se vier vazio, calcula um fallback simples só para preencher a UI
-      if (!breakdown) breakdown = fallbackBreakdown(api);
-      if (!scoreObj || typeof scoreObj.score !== 'number') scoreObj = fallbackScore(breakdown);
-
-      // escreve na tela
-      $score.textContent = safeNum(scoreObj.score, 2);
-      $sev.textContent   = safeNum(breakdown.severity, 2);
-      $dur.textContent   = safeNum(breakdown.duration, 2);
-      $freq.textContent  = safeNum(breakdown.frequency, 2);
-      $imp.textContent   = safeNum(breakdown.impact, 2);
+      try{
+        // pega os elementos (agora com ids padronizados)
+        const $score = pickEl("scoreValue");
+        const $sev   = pickEl("sevValue");
+        const $dur   = pickEl("durValue");
+        const $freq  = pickEl("freqValue");
+        const $imp   = pickEl("impValue");
+        const $note  = pickEl("analysisNote");
+        const $resumo= pickEl("resumoBox");
+    
+        if (!$score || !$sev || !$dur || !$freq || !$imp) return; // card não existe
+    
+        // Mostra se houve erro no backend
+        if ($note) $note.textContent = api?.errors?.alert_score ? "Erro no cálculo (backend)" : "";
+    
+        // score e breakdown nos formatos conhecidos
+        const scNum = (typeof api?.score?.score === "number") ? api.score.score : null;
+        const bd    = api?.score?.breakdown || api?.breakdown || api?.alert_obs || api?.score?.alert_obs || null;
+    
+        // Fallback básico se breakdown não vier
+        function fb(api){
+          const pm25 = Number(api?.air?.pm25) || 0;
+          const foc  = Number(api?.focos?.count) || 0;
+          const frp  = Number(api?.frp_mean ?? api?.desmatamento?.frp_mean ?? 0);
+          return {
+            severity:  Math.min(1, pm25/75),
+            duration:  0,
+            frequency: Math.min(1, foc/150),
+            impact:    Math.min(1, frp/50),
+          };
+        }
+        const breakdown = bd || fb(api);
+        const scoreObj  = (scNum !== null) ? {score: scNum}
+                        : {score: (breakdown.severity + breakdown.duration + breakdown.frequency + breakdown.impact)/4};
+    
+        // escreve
+        $score.textContent = safeNum(scoreObj.score, 2);
+        $sev.textContent   = safeNum(breakdown.severity, 2);
+        $dur.textContent   = safeNum(breakdown.duration, 2);
+        $freq.textContent  = safeNum(breakdown.frequency, 2);
+        $imp.textContent   = safeNum(breakdown.impact, 2);
+    
+        // resumo (opcional)
+        if ($resumo && api?.focos?.count !== undefined){
+          const coords = api?.params ? {
+            lat: api.params.lat, lon: api.params.lon, cidade: api.params.cidade
+          } : {};
+          $resumo.classList.add('text-emerald-700','font-semibold');
+          $resumo.textContent =
+            `Focos plotados: ${(api.focos.count ?? '—')}\n` +
+            `Fonte: INPE (CSV)\n` +
+            `Params: ${JSON.stringify(coords, null, 2)}`;
+        }
+      }catch(err){ console.error("[renderAnalysis] erro:", err); }
     }
+
+
 
     // ================= KPI Água — aceita 0 como valor válido =================
     function _waterValue(api){
@@ -593,24 +623,39 @@
       return Number.isFinite(n) ? n : null;
     }
     function renderWater(api){
-      const v = _waterValue(api);
-      const $val = document.getElementById("aguaValue");
-      const $bad = document.getElementById("aguaBadge");
-      if(!$val) return;
-
-      if(v === null){
-        $val.textContent = "Sem dados";
-        if($bad) $bad.textContent = "—";
-        return;
-      }
-      $val.textContent = `${v.toFixed(1)} mm`;
-      if($bad){
-        let lbl = "Baixo";
-        if(v >= 50) lbl = "Crítico";
-        else if(v >= 20) lbl = "Alto";
-        else if(v >= 5)  lbl = "Moderado";
-        $bad.textContent = lbl;
-      }
+      try{
+        const $val = document.getElementById("aguaValue") || document.getElementById("aguaTitulo");
+        const $bad = document.getElementById("aguaBadge");
+        if(!$val) return;
+    
+        const raw =
+          api?.score?.alert_obs?.meta?.precipitation ??
+          api?.weather?.precipitation ??
+          api?.water?.precipitation ??
+          null;
+    
+        if (raw === null || raw === undefined){
+          $val.textContent = "Sem dados";
+          if ($bad) $bad.textContent = "—";
+          return;
+        }
+    
+        const v = Number(raw);
+        if (!isFinite(v)){
+          $val.textContent = "Sem dados";
+          if ($bad) $bad.textContent = "—";
+          return;
+        }
+    
+        $val.textContent = `${v.toFixed(1)} mm`;
+        if ($bad){
+          let lbl = "Baixo";
+          if (v >= 50) lbl = "Crítico";
+          else if (v >= 20) lbl = "Alto";
+          else if (v >= 5)  lbl = "Moderado";
+          $bad.textContent = lbl;
+        }
+      }catch(e){ console.error("[renderWater] erro:", e); }
     }
   </script>
 </body>
