@@ -134,46 +134,54 @@
         </div>
 
         <!-- Resultado da análise -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <div class="flex items-center gap-3 flex-wrap">
-            <strong class="text-lg font-semibold text-emerald-800">Resultado da análise</strong>
-            <span id="nivelPill" class="pill bg-gray-100 text-gray-700">—</span>
-          </div>
-          <div id="metaBox" class="text-gray-500 text-xs mt-2">
-            Local: <strong>—</strong> • Última observação: <strong>—</strong>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 mt-3">
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Score (0–1)</b>
-              <div id="scoreVal" class="text-xl font-mono text-emerald-800">—</div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Thresholds</b>
-              <div id="thresholds" class="text-xs font-mono text-gray-600">
-                verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66
-              </div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Severity</b>
-              <div id="sevVal" class="text-base font-mono text-gray-800">—</div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Duration</b>
-              <div id="durVal" class="text-base font-mono text-gray-800">—</div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Frequency</b>
-              <div id="freqVal" class="text-base font-mono text-gray-800">—</div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Impact</b>
-              <div id="impVal" class="text-base font-mono text-gray-800">—</div>
-            </div>
-          </div>
-
-          <pre id="resumoBox" class="whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700"></pre>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      <div class="flex items-center gap-3 flex-wrap">
+        <strong class="text-lg font-semibold text-emerald-800">Resultado da análise</strong>
+        <span id="analysisNote" class="text-xs text-amber-700"></span>
+        <span id="nivelPill" class="pill bg-gray-100 text-gray-700">—</span>
+      </div>
+    
+      <div id="metaBox" class="text-gray-500 text-xs mt-2">
+        Local: <strong>—</strong> • Última observação: <strong>—</strong>
+      </div>
+    
+      <div class="grid grid-cols-2 gap-2 mt-3">
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Score (0–1)</b>
+          <div id="scoreValue" class="text-xl font-mono text-emerald-800">—</div>
         </div>
+    
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Thresholds</b>
+          <div id="threshText" class="text-xs font-mono text-gray-600">
+            verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66
+          </div>
+        </div>
+    
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Severity</b>
+          <div id="sevValue" class="text-base font-mono text-gray-800">—</div>
+        </div>
+    
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Duration</b>
+          <div id="durValue" class="text-base font-mono text-gray-800">—</div>
+        </div>
+    
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Frequency</b>
+          <div id="freqValue" class="text-base font-mono text-gray-800">—</div>
+        </div>
+    
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+          <b class="block text-xs text-gray-600 mb-1">Impact</b>
+          <div id="impValue" class="text-base font-mono text-gray-800">—</div>
+        </div>
+      </div>
+    
+      <pre id="resumoBox" class="whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700"></pre>
+    </div>
+
 
         <!-- Últimos alertas -->
         <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
@@ -507,86 +515,103 @@
       }
     }
 
-    // ====== EVENTS / INIT ====================================================
+        // ====== EVENTS / INIT ====================================================
     btnGo.addEventListener('click', executar);
     elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
     carregarUltimosAlertas();
+
+    // ================= helpers pequenos =================
+    function safeNum(n, d = 2) { return (typeof n === "number" && isFinite(n)) ? n.toFixed(d) : "—"; }
+    function _get(o, p, def) { try { return p.split('.').reduce((a, k) => a?.[k], o) ?? def; } catch { return def; } }
+
+    // (você já tem _pickScore em outro lugar; se não tiver, descomente abaixo)
+    /*
+    function _pickScore(api){
+      const scoreObj = api?.score ?? api?.result?.score ?? api?.persisted?.score ?? null;
+      const breakdown = scoreObj?.breakdown ?? api?.alert_obs ?? api?.score?.alert_obs ?? null;
+      return { scoreObj, breakdown };
+    }
+    */
+
+    // ================= fallbacks para não deixar a UI vazia =================
+    function fallbackBreakdown(api){
+      const pm25 = Number(api?.air?.pm25) || 0;                                // 0–150+
+      const focos = Number(api?.focos?.count) || 0;                            // 0–300
+      const frp   = Number(api?.frp_mean ?? api?.desmatamento?.frp_mean ?? 0); // 0–100 aprox.
+      const severity  = Math.min(1, pm25 / 75);   // ajuste depois conforme regra real
+      const frequency = Math.min(1, focos / 150);
+      const impact    = Math.min(1, frp / 50);
+      const duration  = 0; // sem série temporal no front
+      return { severity, duration, frequency, impact };
+    }
+    function fallbackScore(breakdown){
+      const vals = [breakdown.severity, breakdown.duration, breakdown.frequency, breakdown.impact]
+                   .map(v => Number(v) || 0);
+      const avg = vals.reduce((a,b)=>a+b,0) / vals.length;
+      const level = (avg < 0.33) ? "verde" : (avg < 0.66) ? "amarelo" : "vermelho";
+      return { score: avg, level };
+    }
+
+    // ================= Resultado da análise (tolerante) =================
+    function renderAnalysis(api){
+      const note  = document.getElementById('analysisNote'); // <span id="analysisNote"> é opcional
+      const $score = document.getElementById("scoreValue");
+      const $sev   = document.getElementById("sevValue");
+      const $dur   = document.getElementById("durValue");
+      const $freq  = document.getElementById("freqValue");
+      const $imp   = document.getElementById("impValue");
+      if(!$score || !$sev || !$dur || !$freq || !$imp) return;
+
+      // avisa quando o backend falhar o cálculo (ex.: "_rainfall_index is not defined")
+      const apiErr = api?.errors?.alert_score;
+      if (note) note.textContent = apiErr ? "sem cálculo (erro da API)" : "";
+
+      // pega o que vier da API
+      let { scoreObj, breakdown } = _pickScore(api);
+
+      // se vier vazio, calcula um fallback simples só para preencher a UI
+      if (!breakdown) breakdown = fallbackBreakdown(api);
+      if (!scoreObj || typeof scoreObj.score !== 'number') scoreObj = fallbackScore(breakdown);
+
+      // escreve na tela
+      $score.textContent = safeNum(scoreObj.score, 2);
+      $sev.textContent   = safeNum(breakdown.severity, 2);
+      $dur.textContent   = safeNum(breakdown.duration, 2);
+      $freq.textContent  = safeNum(breakdown.frequency, 2);
+      $imp.textContent   = safeNum(breakdown.impact, 2);
+    }
+
+    // ================= KPI Água — aceita 0 como valor válido =================
+    function _waterValue(api){
+      // tenta várias trilhas de onde já vimos vir precipitação
+      const v1 = api?.score?.alert_obs?.meta?.precipitation;
+      const v2 = api?.weather?.precipitation;
+      const v3 = api?.water?.precipitation;
+      const raw = (v1 ?? v2 ?? v3);
+      if(raw === null || raw === undefined) return null;
+      const n = Number(raw);
+      return Number.isFinite(n) ? n : null;
+    }
+    function renderWater(api){
+      const v = _waterValue(api);
+      const $val = document.getElementById("aguaValue");
+      const $bad = document.getElementById("aguaBadge");
+      if(!$val) return;
+
+      if(v === null){
+        $val.textContent = "Sem dados";
+        if($bad) $bad.textContent = "—";
+        return;
+      }
+      $val.textContent = `${v.toFixed(1)} mm`;
+      if($bad){
+        let lbl = "Baixo";
+        if(v >= 50) lbl = "Crítico";
+        else if(v >= 20) lbl = "Alto";
+        else if(v >= 5)  lbl = "Moderado";
+        $bad.textContent = lbl;
+      }
+    }
   </script>
-  <script>
-// helpers pequenos
-function _safeNum(n, d=2){ return (typeof n==="number" && isFinite(n)) ? n.toFixed(d) : "—"; }
-function _get(o,p,def){ try{ return p.split('.').reduce((a,k)=>a?.[k], o) ?? def; }catch{ return def; } }
-
-// Lê score/breakdown nos formatos que sua API já retornou
-function _pickScore(api){
-  const scoreObj =
-    api?.score ??
-    api?.result?.score ??
-    api?.persisted?.score ?? null;
-
-  const breakdown =
-    scoreObj?.breakdown ??
-    api?.alert_obs ??
-    api?.score?.alert_obs ?? null;
-
-  return { scoreObj, breakdown };
-}
-
-// === Resultado da análise ===
-function renderAnalysis(api){
-  const { scoreObj, breakdown } = _pickScore(api);
-
-  const $score = document.getElementById("scoreValue");
-  const $sev   = document.getElementById("sevValue");
-  const $dur   = document.getElementById("durValue");
-  const $freq  = document.getElementById("freqValue");
-  const $imp   = document.getElementById("impValue");
-  if(!$score || !$sev || !$dur || !$freq || !$imp) return; // ids não existem
-
-  if(!scoreObj && !breakdown){
-    $score.textContent = $sev.textContent = $dur.textContent = $freq.textContent = $imp.textContent = "—";
-    return;
-  }
-
-  $score.textContent = _safeNum(scoreObj?.score, 2);
-  $sev.textContent   = _safeNum(breakdown?.severity, 2);
-  $dur.textContent   = _safeNum(breakdown?.duration, 2);
-  $freq.textContent  = _safeNum(breakdown?.frequency, 2);
-  $imp.textContent   = _safeNum(breakdown?.impact, 2);
-}
-
-// === KPI Água — aceita 0 como valor válido ===
-function _waterValue(api){
-  // tenta várias trilhas de onde já vimos vir precipitação
-  const v1 = api?.score?.alert_obs?.meta?.precipitation;
-  const v2 = api?.weather?.precipitation;
-  const v3 = api?.water?.precipitation;
-  const raw = (v1 ?? v2 ?? v3);
-  if(raw === null || raw === undefined) return null;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : null;
-}
-function renderWater(api){
-  const v = _waterValue(api);
-  const $val = document.getElementById("aguaValue");
-  const $bad = document.getElementById("aguaBadge");
-  if(!$val) return;
-
-  if(v === null){
-    $val.textContent = "Sem dados";
-    if($bad) $bad.textContent = "—";
-    return;
-  }
-  $val.textContent = `${v.toFixed(1)} mm`;
-  if($bad){
-    let lbl = "Baixo";
-    if(v >= 50) lbl = "Crítico";
-    else if(v >= 20) lbl = "Alto";
-    else if(v >= 5)  lbl = "Moderado";
-    $bad.textContent = lbl;
-  }
-}
-</script>
-
 </body>
 </html>
