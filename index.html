@@ -481,7 +481,8 @@
         resumoBox.classList.add('text-emerald-700', 'font-semibold');
         resumoBox.textContent =
           `Focos plotados: ${resFocos.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords, null, 2)}`;
-
+        renderAnalysis(data);   // preenche Score/Severity/Duration/Frequency/Impact
+        renderWater(data);      // corrige Água (0.0 mm não vira "Sem dados")
         // 6) Histórico (anexa ponto)
         const ts = new Date().toLocaleDateString('pt-BR', { month:'2-digit', day:'2-digit' });
         if (s !== null) {
@@ -511,5 +512,81 @@
     elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
     carregarUltimosAlertas();
   </script>
+  <script>
+// helpers pequenos
+function _safeNum(n, d=2){ return (typeof n==="number" && isFinite(n)) ? n.toFixed(d) : "—"; }
+function _get(o,p,def){ try{ return p.split('.').reduce((a,k)=>a?.[k], o) ?? def; }catch{ return def; } }
+
+// Lê score/breakdown nos formatos que sua API já retornou
+function _pickScore(api){
+  const scoreObj =
+    api?.score ??
+    api?.result?.score ??
+    api?.persisted?.score ?? null;
+
+  const breakdown =
+    scoreObj?.breakdown ??
+    api?.alert_obs ??
+    api?.score?.alert_obs ?? null;
+
+  return { scoreObj, breakdown };
+}
+
+// === Resultado da análise ===
+function renderAnalysis(api){
+  const { scoreObj, breakdown } = _pickScore(api);
+
+  const $score = document.getElementById("scoreValue");
+  const $sev   = document.getElementById("sevValue");
+  const $dur   = document.getElementById("durValue");
+  const $freq  = document.getElementById("freqValue");
+  const $imp   = document.getElementById("impValue");
+  if(!$score || !$sev || !$dur || !$freq || !$imp) return; // ids não existem
+
+  if(!scoreObj && !breakdown){
+    $score.textContent = $sev.textContent = $dur.textContent = $freq.textContent = $imp.textContent = "—";
+    return;
+  }
+
+  $score.textContent = _safeNum(scoreObj?.score, 2);
+  $sev.textContent   = _safeNum(breakdown?.severity, 2);
+  $dur.textContent   = _safeNum(breakdown?.duration, 2);
+  $freq.textContent  = _safeNum(breakdown?.frequency, 2);
+  $imp.textContent   = _safeNum(breakdown?.impact, 2);
+}
+
+// === KPI Água — aceita 0 como valor válido ===
+function _waterValue(api){
+  // tenta várias trilhas de onde já vimos vir precipitação
+  const v1 = api?.score?.alert_obs?.meta?.precipitation;
+  const v2 = api?.weather?.precipitation;
+  const v3 = api?.water?.precipitation;
+  const raw = (v1 ?? v2 ?? v3);
+  if(raw === null || raw === undefined) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+function renderWater(api){
+  const v = _waterValue(api);
+  const $val = document.getElementById("aguaValue");
+  const $bad = document.getElementById("aguaBadge");
+  if(!$val) return;
+
+  if(v === null){
+    $val.textContent = "Sem dados";
+    if($bad) $bad.textContent = "—";
+    return;
+  }
+  $val.textContent = `${v.toFixed(1)} mm`;
+  if($bad){
+    let lbl = "Baixo";
+    if(v >= 50) lbl = "Crítico";
+    else if(v >= 20) lbl = "Alto";
+    else if(v >= 5)  lbl = "Moderado";
+    $bad.textContent = lbl;
+  }
+}
+</script>
+
 </body>
 </html>
