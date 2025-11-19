@@ -600,5 +600,19 @@
       }catch(e){ console.error("[renderWater] erro:", e); }
     }
   </script>
+  <script>
+    // Mantém o backend do AmazonSafe acordado
+    function keepAlive() {
+        fetch("https://amazonsafe-api.onrender.com/health")
+            .then(() => console.log("keep-alive ping"))
+            .catch(() => {});
+    }
+
+    // Ativa a cada 4 minutos (Render dorme com ~10)
+    setInterval(keepAlive, 4 * 60 * 1000);
+
+    // Dá um ping logo ao carregar a página
+    keepAlive();
+</script>
 </body>
 </html>
