@@ -1,5 +1,3 @@
-<!-- Versão unificada do front combinando elementos visuais do seu layout atual + o layout da colega -->
-<!-- Em construção inicial: estrutura base pronta para você aprovar antes de evoluir -->
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -16,7 +14,6 @@
           colors: {
             brand: "#39ff14",
             darkbg: "#0a0f1f",
-            darkpanel: "rgba(255,255,255,0.06)",
             amberish: "#f59e0b",
           }
         }
@@ -27,6 +24,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet & Chart.js -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
   <style>
     body {
@@ -46,6 +47,7 @@
       background: #39ff14;
       box-shadow: 0 0 12px #39ff14;
     }
+    #map { height: 100%; min-height: 320px; }
   </style>
 </head>
 <body class="text-gray-200">
@@ -64,7 +66,7 @@
   <!-- ÁREA PRINCIPAL -->
   <main class="ml-64 p-8 space-y-10">
 
-    <!-- HEADER UNIFICADO: fundo escuro + visual clean da colega -->
+    <!-- HEADER UNIFICADO -->
     <section class="relative h-64 w-full rounded-3xl glass overflow-hidden flex items-center justify-center">
       <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663030651132/VaHDnnNRXpzfKYsc.png" class="absolute inset-0 w-full h-full object-cover opacity-20" />
       <div class="relative z-10 text-center">
@@ -73,19 +75,19 @@
       </div>
     </section>
 
-    <!-- BARRA DE BUSCA – versão inspirada na colega, mas em dark theme -->
+    <!-- BARRA DE BUSCA -->
     <section class="flex flex-wrap gap-3 items-center">
       <input id="cidade" class="glass p-3 rounded-xl min-w-[240px]" placeholder="Cidade (ex: Belém, PA)">
-      <input id="lat" class="glass p-3 rounded-xl w-28" placeholder="Lat">
-      <input id="lon" class="glass p-3 rounded-xl w-28" placeholder="Lon">
-      <button id="btnGo" class="neon-btn text-black font-semibold px-6 py-3 rounded-xl">Buscar & Analisar</button>
+      <input id="lat" class="glass p-3 rounded-xl w-28" placeholder="Lat" type="number" step="0.0001">
+      <input id="lon" class="glass p-3 rounded-xl w-28" placeholder="Lon" type="number" step="0.0001">
+      <button id="btnGo" class="neon-btn text-black font-semibold px-6 py-3 rounded-xl disabled:opacity-60 disabled:cursor-not-allowed">Buscar &amp; Analisar</button>
     </section>
 
-    <!-- KPIs – mistura da estética dark neon com layout de cartões da colega -->
+    <!-- KPIs -->
     <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
       <!-- Água -->
       <div class="glass rounded-2xl p-5">
-        <h3 class="text-xl">Água</h3>
+        <h3 class="text-xl">Água (chuva/cheia)</h3>
         <p id="aguaInfo" class="text-3xl text-brand font-bold mt-2">—</p>
         <p class="text-sm text-gray-400" id="aguaDesc">—</p>
       </div>
@@ -99,7 +101,7 @@
 
       <!-- Desmatamento -->
       <div class="glass rounded-2xl p-5">
-        <h3 class="text-xl">Desmatamento</h3>
+        <h3 class="text-xl">Desmatamento (proxy)</h3>
         <p id="desInfo" class="text-3xl text-amberish font-bold mt-2">—</p>
         <p class="text-sm text-gray-400" id="desDesc">—</p>
       </div>
@@ -120,16 +122,18 @@
 
       <div class="glass rounded-2xl p-4">
         <h3 class="text-2xl mb-2 font-semibold">Histórico de Risco</h3>
-        <canvas id="riscoChart" class="h-48"></canvas>
+        <div class="h-48">
+          <canvas id="riscoChart"></canvas>
+        </div>
       </div>
     </section>
 
-    <!-- RESULTADO – combina colunas, cores e info -->
+    <!-- RESULTADO -->
     <section class="glass rounded-2xl p-6">
       <h2 class="text-3xl font-bold mb-4">Resultado da Análise</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
         <div>
-          <p class="text-sm">Score</p>
+          <p class="text-sm">Score (0–1)</p>
           <p id="scoreValue" class="text-2xl font-bold">—</p>
         </div>
         <div>
@@ -152,13 +156,360 @@
       <pre id="resumoBox" class="bg-black/30 p-4 rounded-xl text-sm whitespace-pre-wrap">—</pre>
     </section>
 
-    <!-- RANKING por Estado -->
+    <!-- RANKING (placeholder funcional) -->
     <section class="glass rounded-2xl p-6">
       <h2 class="text-3xl font-bold mb-4">Ranking (Top 5 por Estado)</h2>
-      <div id="rankingBox" class="text-lg"></div>
+      <div id="rankingBox" class="text-sm text-gray-300">Em breve: ranking consolidado a partir dos alertas da API.</div>
     </section>
 
   </main>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // ===== CONFIG & DOM =====
+    const API = "https://amazonsafe-api.onrender.com";
+
+    const elCidade = document.getElementById('cidade');
+    const elLat    = document.getElementById('lat');
+    const elLon    = document.getElementById('lon');
+    const btnGo    = document.getElementById('btnGo');
+
+    const aguaInfo = document.getElementById('aguaInfo');
+    const aguaDesc = document.getElementById('aguaDesc');
+
+    const arInfo   = document.getElementById('arInfo');
+    const arDesc   = document.getElementById('arDesc');
+
+    const desInfo  = document.getElementById('desInfo');
+    const desDesc  = document.getElementById('desDesc');
+
+    const focosInfo = document.getElementById('focosInfo');
+    const focosDesc = document.getElementById('focosDesc');
+
+    const scoreValue = document.getElementById('scoreValue');
+    const sevValue   = document.getElementById('sevValue');
+    const durValue   = document.getElementById('durValue');
+    const freqValue  = document.getElementById('freqValue');
+    const impValue   = document.getElementById('impValue');
+    const resumoBox  = document.getElementById('resumoBox');
+    const rankingBox = document.getElementById('rankingBox');
+
+    // ===== MAPA =====
+    const map = L.map('map').setView([-3.1, -60.0], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    let focosLayer = L.layerGroup().addTo(map);
+    let cityMarker = null;
+
+    function focusMapOnCity(coords, opts = {}) {
+      if (!coords || coords.lat == null || coords.lon == null) return;
+      const zoom = opts.zoom ?? 11;
+      const latlng = [coords.lat, coords.lon];
+      if (typeof map.flyTo === 'function') {
+        map.flyTo(latlng, zoom, { animate: true, duration: 0.8 });
+      } else {
+        map.setView(latlng, zoom);
+      }
+      try {
+        if (cityMarker) {
+          map.removeLayer(cityMarker);
+          cityMarker = null;
+        }
+        cityMarker = L.circleMarker(latlng, {
+          radius: 7,
+          weight: 2,
+          opacity: 0.9,
+          fillOpacity: 0.2
+        }).addTo(map);
+      } catch (_) {}
+    }
+
+    // ===== GRÁFICO =====
+    const riscoCtx = document.getElementById('riscoChart').getContext('2d');
+    const riscoChart = new Chart(riscoCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Score',
+          data: [],
+          borderColor: 'rgb(57,255,20)',
+          tension: 0.3,
+          pointRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { min: 0, max: 1 } },
+        plugins: { legend: { display: false } }
+      }
+    });
+
+    // ===== HELPERS =====
+    function get(obj, path, def = undefined) {
+      try {
+        return path.split('.').reduce((o,k)=> (o && (k in o)) ? o[k] : undefined, obj) ?? def;
+      } catch {
+        return def;
+      }
+    }
+
+    function num(v, def = null) {
+      const n = (typeof v === 'string' && v.trim() === '') ? NaN : Number(v);
+      return Number.isFinite(n) ? n : def;
+    }
+
+    function safeNum(n, d = 2) {
+      return (typeof n === 'number' && isFinite(n)) ? n.toFixed(d) : '—';
+    }
+
+    const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+    async function fetchJson(url, opts) {
+      const r = await fetch(url, opts);
+      if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+      return r.json();
+    }
+
+    function getPrecipMM(resp) {
+      const fromBreak = num(get(resp, 'score.breakdown.precip_24h_mm'), null);
+      if (fromBreak !== null) return fromBreak;
+      const pm = num(get(resp, 'weather.features.precipitation'), null)
+              ?? num(get(resp, 'weather.current.precipitation'), null);
+      return pm;
+    }
+
+    function getRainIndex(resp) {
+      const idx = num(get(resp, 'score.breakdown.precip_index'), null);
+      if (idx !== null) return clamp01(idx);
+      const mm = getPrecipMM(resp);
+      if (!Number.isFinite(mm)) return null;
+      const low  = Math.min(1, mm / 10);
+      const high = Math.min(1, Math.max(0, (mm - 70) / 50));
+      return clamp01(Math.max(low, high));
+    }
+
+    function rainLevel(rainIdx) {
+      if (!Number.isFinite(rainIdx)) return ['Sem dados', 'Sem dados'];
+      if (rainIdx < 0.33) return ['Baixo', 'OK'];
+      if (rainIdx < 0.66) return ['Moderado', 'Atenção'];
+      return ['Alto', 'Risco de cheia'];
+    }
+
+    function getParamsFromUI() {
+      const cidade = elCidade.value.trim();
+      const lat = num(elLat.value, null);
+      const lon = num(elLon.value, null);
+      if (cidade) return { cidade };
+      if (lat === null || lon === null) throw new Error('Informe a cidade ou latitude/longitude válidos.');
+      return { lat, lon };
+    }
+
+    function extractCoords(resp, fallback) {
+      if (get(resp, 'params.lat') && get(resp, 'params.lon')) return { lat: resp.params.lat, lon: resp.params.lon };
+      if (get(resp, 'lat') && get(resp, 'lon')) return { lat: resp.lat, lon: resp.lon };
+      if (get(resp, 'params.resolve.lat') && get(resp, 'params.resolve.lon')) return { lat: resp.params.resolve.lat, lon: resp.params.resolve.lon };
+      return fallback;
+    }
+
+    function setLoading(on) {
+      btnGo.disabled = on;
+      btnGo.textContent = on ? 'Processando...' : 'Buscar & Analisar';
+    }
+
+    // ===== FOCOS & DESMATAMENTO =====
+    async function carregarFocos(params, fallbackCoords) {
+      focosLayer.clearLayers();
+      const qs = new URLSearchParams({ scope: 'diario', region: 'Brasil', limit: 300, ...params }).toString();
+      const data = await fetchJson(`${API}/api/inpe/focos?${qs}`);
+      const focos = (data.features && data.features.focos) || [];
+      const frps = [];
+
+      focos.forEach(f => {
+        if (Number.isFinite(+f.frp)) frps.push(+f.frp);
+        const m = L.circleMarker([f.latitude, f.longitude], {
+          radius: Math.max(3, Math.min(12, (f.frp || 1) / 8)),
+          color: '#f97373',
+          weight: 1,
+          fillOpacity: 0.75
+        }).bindPopup(`
+          <div><strong>${f.municipio || ''} - ${f.uf || ''}</strong></div>
+          <div>Satélite: ${f.satelite || '-'}</div>
+          <div>FRP: ${f.frp ?? '-'}</div>
+          <div>Bioma: ${f.bioma || '-'}</div>
+        `);
+        m.addTo(focosLayer);
+      });
+
+      if (focos.length) {
+        const bounds = L.latLngBounds(focos.map(f => [f.latitude, f.longitude]));
+        map.fitBounds(bounds.pad(0.2));
+      } else if (fallbackCoords) {
+        focusMapOnCity(fallbackCoords, { zoom: 9 });
+      }
+
+      // KPI Focos
+      const levelTxt = focos.length ? (focos.length >= 150 ? 'Crítico' : focos.length >= 50 ? 'Alerta' : 'Baixo') : 'Baixo';
+      focosInfo.textContent = `Focos: ${focos.length}`;
+      focosDesc.textContent = `Nível: ${levelTxt}`;
+
+      // KPI Desmatamento (proxy por FRP médio)
+      const avgFRP = frps.length ? (frps.reduce((a,b)=>a+b,0)/frps.length) : 0;
+      let desmLevel = 'Baixo';
+      if (avgFRP >= 7) desmLevel = 'Alto';
+      else if (avgFRP >= 3) desmLevel = 'Moderado';
+
+      desInfo.textContent = `FRP médio: ${avgFRP ? avgFRP.toFixed(1) : '—'}`;
+      desDesc.textContent = `Nível: ${desmLevel}`;
+
+      return { count: focos.length, avgFRP };
+    }
+
+    // ===== ANÁLISE & KPIs =====
+    function renderAnalysis(api) {
+      const scNum = (typeof get(api, 'score.score') === 'number') ? api.score.score : null;
+      const bdRaw = get(api, 'score.breakdown') || null;
+
+      function fb(a) {
+        const pm25 = Number(get(a, 'air.features.pm25') || get(a, 'air.pm25') || 0) || 0;
+        const foc  = Number(get(a, 'focos.count') || 0);
+        const frp  = Number(get(a, 'desmatamento.frp_mean') || 0);
+        return {
+          severity:  Math.min(1, pm25/75),
+          duration:  0,
+          frequency: Math.min(1, foc/150),
+          impact:    Math.min(1, frp/50)
+        };
+      }
+
+      const breakdown = bdRaw || fb(api);
+      const scoreObj  = (scNum !== null) ? { score: scNum }
+                      : { score: (breakdown.severity + breakdown.duration + breakdown.frequency + breakdown.impact)/4 };
+
+      scoreValue.textContent = safeNum(scoreObj.score, 2);
+      sevValue.textContent   = safeNum(breakdown.severity, 2);
+      durValue.textContent   = safeNum(breakdown.duration, 2);
+      freqValue.textContent  = safeNum(breakdown.frequency, 2);
+      impValue.textContent   = safeNum(breakdown.impact, 2);
+
+      resumoBox.classList.remove('text-red-400');
+      resumoBox.classList.add('text-emerald-300');
+      resumoBox.textContent =
+        `Score: ${safeNum(scoreObj.score,2)}
+` +
+        `Severity: ${safeNum(breakdown.severity,2)}
+` +
+        `Duration: ${safeNum(breakdown.duration,2)}
+` +
+        `Frequency: ${safeNum(breakdown.frequency,2)}
+` +
+        `Impact: ${safeNum(breakdown.impact,2)}`;
+
+      const ts = new Date().toLocaleString('pt-BR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+      if (Number.isFinite(scoreObj.score)) {
+        riscoChart.data.labels.push(ts);
+        riscoChart.data.datasets[0].data.push(scoreObj.score);
+        if (riscoChart.data.labels.length > 30) {
+          riscoChart.data.labels.shift();
+          riscoChart.data.datasets[0].data.shift();
+        }
+        riscoChart.update();
+      }
+    }
+
+    function renderWater(api) {
+      const mm  = getPrecipMM(api);
+      const rix = getRainIndex(api);
+      const [lvlTxt, badgeTxt] = rainLevel(rix);
+
+      if (Number.isFinite(mm)) {
+        aguaInfo.textContent = `${mm.toFixed(1)} mm`;
+        aguaDesc.textContent = `${badgeTxt} (nível ${lvlTxt})`;
+      } else {
+        aguaInfo.textContent = '—';
+        aguaDesc.textContent = 'Sem dados de chuva nas últimas 24h.';
+      }
+    }
+
+    // ===== EXECUÇÃO PRINCIPAL =====
+    async function executar() {
+      setLoading(true);
+      resumoBox.textContent = 'Processando análise...';
+      resumoBox.classList.remove('text-emerald-300', 'text-red-400');
+
+      try {
+        const uiParams = getParamsFromUI();
+
+        const data = await fetchJson(`${API}/api/alertas_update`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...uiParams,
+            scope: 'diario',
+            region: 'Brasil',
+            raio_km: 150,
+            air_radius_m: 10000,
+            weather_provider: 'open-meteo'
+          })
+        });
+
+        // Água
+        renderWater(data);
+
+        // Ar
+        const airStatus = get(data, 'score.air_status') || get(data, 'air_status');
+        const pm25 = num(get(data, 'air.features.pm25'), null) ?? num(get(data, 'air.pm25'), null);
+        if (airStatus === 'sem_estacao') {
+          arInfo.textContent = '—';
+          arDesc.textContent = 'Sem estação próxima.';
+        } else if (Number.isFinite(pm25)) {
+          const status = (pm25 < 12) ? 'Bom' : (pm25 < 35) ? 'Moderado' : 'Ruim';
+          arInfo.textContent = `${pm25.toFixed(1)} µg/m³`;
+          arDesc.textContent = `PM2.5 ${status}`;
+        } else {
+          arInfo.textContent = '—';
+          arDesc.textContent = 'Sem dados de PM2.5.';
+        }
+
+        // Resultado (score + breakdown)
+        renderAnalysis(data);
+
+        // Coordenadas resolvidas / fallback
+        const coords = extractCoords(data, uiParams);
+        focusMapOnCity(coords, { zoom: 11 });
+
+        // Focos + desmatamento
+        const focosResumo = await carregarFocos(coords, coords);
+
+        // Ranking (placeholder simples)
+        rankingBox.textContent = `Focos plotados na região: ${focosResumo.count}. FRP médio: ${safeNum(focosResumo.avgFRP,1)}.`;
+
+      } catch (err) {
+        console.error(err);
+        resumoBox.classList.remove('text-emerald-300');
+        resumoBox.classList.add('text-red-400');
+        resumoBox.textContent = `Erro: ${err.message}`;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // Eventos & inicialização
+    btnGo.addEventListener('click', executar);
+    elCidade.addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
+
+    // Estado inicial: Belém já preenchido e uma análise automática
+    window.addEventListener('DOMContentLoaded', () => {
+      elCidade.value = 'Belém, PA';
+      executar();
+    });
+  </script>
 
 </body>
 </html>
