@@ -1,8 +1,10 @@
-<!doctype html>
+<!-- Versão unificada do front combinando elementos visuais do seu layout atual + o layout da colega -->
+<!-- Em construção inicial: estrutura base pronta para você aprovar antes de evoluir -->
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>AmazonSafe – Mapa e Alertas</title>
+  <title>AmazonSafe – Monitoramento Ambiental Inteligente</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 
   <!-- Tailwind -->
@@ -12,607 +14,151 @@
       theme: {
         extend: {
           colors: {
-            brand: '#16a34a',
-            amberish: '#f59e0b',
-            slateish: '#0f172a',
+            brand: "#39ff14",
+            darkbg: "#0a0f1f",
+            darkpanel: "rgba(255,255,255,0.06)",
+            amberish: "#f59e0b",
           }
         }
       }
     }
   </script>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
-    #map { height: 64vh; min-height: 380px; }
-    .pill { display:inline-flex; align-items:center; padding:0.125rem 0.625rem; border-radius:9999px; font-size:0.75rem; font-weight:600; }
+    body {
+      background: radial-gradient(circle at center, #1a2540, #0a0f1f 70%);
+      font-family: 'Rajdhani', sans-serif;
+    }
+    .glass {
+      backdrop-filter: blur(12px);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .neon-green {
+      color: #39ff14;
+      text-shadow: 0 0 6px #39ff14;
+    }
+    .neon-btn {
+      background: #39ff14;
+      box-shadow: 0 0 12px #39ff14;
+    }
   </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
-  <!-- HEADER -->
-  <header class="sticky top-0 z-20 bg-white border-b border-gray-200">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
-      <div class="flex items-center gap-4 min-w-[280px]">
-        <!-- Logo (mantida) -->
-        <img src="assets/logo.png" alt="AmazonSafe" class="h-[80px] w-[80px] rounded-full object-cover" />
+<body class="text-gray-200">
 
-        <!-- Bloco de título + subtítulo -->
-        <div class="inline-block" id="brandBlock">
-          <div class="text-4xl font-extrabold leading-tight whitespace-nowrap">
-            Amazon<span class="text-emerald-600">Safe</span>
-          </div>
-          <div class="text-[14px] text-gray-600 -mt-1 whitespace-nowrap">
-            Monitoramento Ambiental Inteligente
-          </div>
-        </div>
+  <!-- SIDEBAR escuro + navegação -->
+  <aside class="fixed left-0 top-0 h-full w-56 glass p-6 flex flex-col space-y-6">
+    <h1 class="text-3xl font-bold neon-green">AmazonSafe</h1>
+    <nav class="flex flex-col space-y-3 text-lg">
+      <a href="#" class="hover:text-brand">Home</a>
+      <a href="#sobre" class="hover:text-brand">Sobre</a>
+      <a href="#contato" class="hover:text-brand">Contato</a>
+      <a href="#suporte" class="hover:text-brand">Suporte</a>
+    </nav>
+  </aside>
 
-        <!-- Badge da API (mantida) -->
-        <span class="ml-3 text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full">
-          API: amazonsafe-api.onrender.com
-        </span>
+  <!-- ÁREA PRINCIPAL -->
+  <main class="ml-64 p-8 space-y-10">
+
+    <!-- HEADER UNIFICADO: fundo escuro + visual clean da colega -->
+    <section class="relative h-64 w-full rounded-3xl glass overflow-hidden flex items-center justify-center">
+      <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663030651132/VaHDnnNRXpzfKYsc.png" class="absolute inset-0 w-full h-full object-cover opacity-20" />
+      <div class="relative z-10 text-center">
+        <h2 class="text-5xl font-bold neon-green">Monitoramento Ambiental Inteligente</h2>
+        <p class="mt-2 text-gray-300 text-lg">Dados em tempo real — AmazonSafe</p>
       </div>
+    </section>
 
-      <div class="ml-auto flex gap-2 flex-wrap">
-        <input id="cidade" placeholder="Cidade (ex: Belém, PA)" class="p-2 border border-gray-300 rounded-lg min-w-[210px] text-gray-800" />
-        <input id="lat" type="number" step="0.0001" placeholder="Lat" class="p-2 border border-gray-300 rounded-lg w-28 text-gray-800" />
-        <input id="lon" type="number" step="0.0001" placeholder="Lon" class="p-2 border border-gray-300 rounded-lg w-28 text-gray-800" />
-        <button id="btnGo" class="p-2 px-4 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg transition duration-150 disabled:opacity-60 disabled:cursor-not-allowed">
-          Buscar & Analisar
-        </button>
-      </div>
-    </div>
-  </header>
+    <!-- BARRA DE BUSCA – versão inspirada na colega, mas em dark theme -->
+    <section class="flex flex-wrap gap-3 items-center">
+      <input id="cidade" class="glass p-3 rounded-xl min-w-[240px]" placeholder="Cidade (ex: Belém, PA)">
+      <input id="lat" class="glass p-3 rounded-xl w-28" placeholder="Lat">
+      <input id="lon" class="glass p-3 rounded-xl w-28" placeholder="Lon">
+      <button id="btnGo" class="neon-btn text-black font-semibold px-6 py-3 rounded-xl">Buscar & Analisar</button>
+    </section>
 
-  <!-- KPIs -->
-  <main class="max-w-7xl mx-auto px-3 lg:px-4">
-    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-4">
+    <!-- KPIs – mistura da estética dark neon com layout de cartões da colega -->
+    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
       <!-- Água -->
-      <div id="kpiAgua" class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div id="kpiAguaTop" class="border-b-4 border-emerald-500 rounded-t-xl"></div>
-        <div class="p-4">
-          <p class="text-xs uppercase text-gray-500 font-semibold">Água (chuva/cheia)</p>
-          <p id="aguaTitulo" class="text-3xl font-bold text-emerald-800 mt-1">—</p>
-          <p id="aguaInfo" class="text-sm text-gray-600 mt-1">—</p>
-          <span id="aguaBadge" class="pill bg-emerald-100 text-emerald-700 mt-2">—</span>
-        </div>
+      <div class="glass rounded-2xl p-5">
+        <h3 class="text-xl">Água</h3>
+        <p id="aguaInfo" class="text-3xl text-brand font-bold mt-2">—</p>
+        <p class="text-sm text-gray-400" id="aguaDesc">—</p>
       </div>
 
       <!-- Ar -->
-      <div id="kpiAr" class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div id="kpiArTop" class="border-b-4 border-sky-500 rounded-t-xl"></div>
-        <div class="p-4">
-          <p class="text-xs uppercase text-gray-500 font-semibold">Qualidade do Ar</p>
-          <p id="arTitulo" class="text-3xl font-bold text-sky-800 mt-1">—</p>
-          <p id="arInfo" class="text-sm text-gray-600 mt-1">—</p>
-          <span id="arBadge" class="pill bg-sky-100 text-sky-700 mt-2">—</span>
-        </div>
+      <div class="glass rounded-2xl p-5">
+        <h3 class="text-xl">Qualidade do Ar</h3>
+        <p id="arInfo" class="text-3xl text-sky-400 font-bold mt-2">—</p>
+        <p class="text-sm text-gray-400" id="arDesc">—</p>
       </div>
 
-      <!-- Desmatamento (proxy) -->
-      <div id="kpiDesm" class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div id="kpiDesmTop" class="border-b-4 border-emerald-700 rounded-t-xl"></div>
-        <div class="p-4">
-          <p class="text-xs uppercase text-gray-500 font-semibold">Desmatamento (proxy)</p>
-          <p id="desmTitulo" class="text-3xl font-bold text-emerald-900 mt-1">—</p>
-          <p id="desmInfo" class="text-sm text-gray-600 mt-1">—</p>
-          <span id="desmBadge" class="pill bg-emerald-100 text-emerald-700 mt-2">—</span>
-        </div>
+      <!-- Desmatamento -->
+      <div class="glass rounded-2xl p-5">
+        <h3 class="text-xl">Desmatamento</h3>
+        <p id="desInfo" class="text-3xl text-amberish font-bold mt-2">—</p>
+        <p class="text-sm text-gray-400" id="desDesc">—</p>
       </div>
 
       <!-- Focos -->
-      <div id="kpiFocos" class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div id="kpiFocosTop" class="border-b-4 border-red-600 rounded-t-xl"></div>
-        <div class="p-4">
-          <p class="text-xs uppercase text-gray-500 font-semibold">Focos de Incêndio</p>
-          <p id="focosTitulo" class="text-3xl font-bold text-red-700 mt-1">—</p>
-          <p id="focosInfo" class="text-sm text-gray-600 mt-1">—</p>
-          <span id="focosBadge" class="pill bg-red-100 text-red-700 mt-2">—</span>
-        </div>
+      <div class="glass rounded-2xl p-5">
+        <h3 class="text-xl">Focos de Incêndio</h3>
+        <p id="focosInfo" class="text-3xl text-red-400 font-bold mt-2">—</p>
+        <p class="text-sm text-gray-400" id="focosDesc">—</p>
       </div>
     </section>
 
-    <!-- MAPA + LADO DIREITO -->
-    <section class="grid lg:grid-cols-3 gap-4 mt-4">
-      <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div id="map"></div>
+    <!-- MAPA + HISTÓRICO -->
+    <section class="grid lg:grid-cols-3 gap-6">
+      <div class="glass rounded-2xl p-4 lg:col-span-2 h-[420px]">
+        <div id="map" class="w-full h-full rounded-xl"></div>
       </div>
 
-      <aside class="flex flex-col gap-4">
-        <!-- Histórico de risco -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <h3 class="font-semibold text-emerald-800 mb-2">Histórico de Risco</h3>
-          <div class="h-40">
-            <canvas id="riscoHistorico"></canvas>
-          </div>
-        </div>
-
-        <!-- Resultado da análise -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <div class="flex items-center gap-3 flex-wrap">
-            <strong class="text-lg font-semibold text-emerald-800">Resultado da análise</strong>
-            <span id="analysisNote" class="text-xs text-amber-700"></span>
-            <span id="nivelPill" class="pill bg-gray-100 text-gray-700">—</span>
-          </div>
-
-          <div id="metaBox" class="text-gray-500 text-xs mt-2">
-            Local: <strong>—</strong> • Última observação: <strong>—</strong>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 mt-3">
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Score (0–1)</b>
-              <div id="scoreValue" class="text-xl font-mono text-emerald-800">—</div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Thresholds</b>
-              <div id="threshText" class="text-xs font-mono text-gray-600">
-                verde &lt; 0.33 • amarelo 0.33–0.66 • vermelho ≥ 0.66
-              </div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Severity</b>
-              <div id="sevValue" class="text-base font-mono text-gray-800">—</div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Duration</b>
-              <div id="durValue" class="text-base font-mono text-gray-800">—</div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Frequency</b>
-              <div id="freqValue" class="text-base font-mono text-gray-800">—</div>
-            </div>
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <b class="block text-xs text-gray-600 mb-1">Impact</b>
-              <div id="impValue" class="text-base font-mono text-gray-800">—</div>
-            </div>
-          </div>
-
-          <pre id="resumoBox" class="whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700"></pre>
-        </div>
-
-        <!-- Últimos alertas -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <div class="flex justify-between items-center gap-2">
-            <strong class="text-lg font-semibold text-emerald-800">Últimos alertas</strong>
-            <span class="text-xs text-gray-500">• círculo menor = foco fraco</span>
-          </div>
-          <pre id="alertasBox" class="whitespace-pre-wrap text-xs mt-3 bg-gray-50 border border-gray-200 rounded-lg p-2"></pre>
-        </div>
-      </aside>
+      <div class="glass rounded-2xl p-4">
+        <h3 class="text-2xl mb-2 font-semibold">Histórico de Risco</h3>
+        <canvas id="riscoChart" class="h-48"></canvas>
+      </div>
     </section>
+
+    <!-- RESULTADO – combina colunas, cores e info -->
+    <section class="glass rounded-2xl p-6">
+      <h2 class="text-3xl font-bold mb-4">Resultado da Análise</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+        <div>
+          <p class="text-sm">Score</p>
+          <p id="scoreValue" class="text-2xl font-bold">—</p>
+        </div>
+        <div>
+          <p class="text-sm">Severidade</p>
+          <p id="sevValue" class="text-xl">—</p>
+        </div>
+        <div>
+          <p class="text-sm">Duração</p>
+          <p id="durValue" class="text-xl">—</p>
+        </div>
+        <div>
+          <p class="text-sm">Frequência</p>
+          <p id="freqValue" class="text-xl">—</p>
+        </div>
+        <div>
+          <p class="text-sm">Impacto</p>
+          <p id="impValue" class="text-xl">—</p>
+        </div>
+      </div>
+      <pre id="resumoBox" class="bg-black/30 p-4 rounded-xl text-sm whitespace-pre-wrap">—</pre>
+    </section>
+
+    <!-- RANKING por Estado -->
+    <section class="glass rounded-2xl p-6">
+      <h2 class="text-3xl font-bold mb-4">Ranking (Top 5 por Estado)</h2>
+      <div id="rankingBox" class="text-lg"></div>
+    </section>
+
   </main>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <script>
-    // ====== CONFIG ===========================================================
-    const API = "https://amazonsafe-api.onrender.com";
-
-    // ====== DOM ==============================================================
-    const elCidade = document.querySelector('#cidade');
-    const elLat    = document.querySelector('#lat');
-    const elLon    = document.querySelector('#lon');
-    const btnGo    = document.querySelector('#btnGo');
-
-    // KPIs
-    const aguaTitulo = document.querySelector('#aguaTitulo');
-    const aguaInfo   = document.querySelector('#aguaInfo');
-    const aguaBadge  = document.querySelector('#aguaBadge');
-    const kpiAguaTop = document.querySelector('#kpiAguaTop');
-
-    const arTitulo = document.querySelector('#arTitulo');
-    const arInfo   = document.querySelector('#arInfo');
-    const arBadge  = document.querySelector('#arBadge');
-    const kpiArTop = document.querySelector('#kpiArTop');
-
-    const desmTitulo = document.querySelector('#desmTitulo');
-    const desmInfo   = document.querySelector('#desmInfo');
-    const desmBadge  = document.querySelector('#desmBadge');
-    const kpiDesmTop = document.querySelector('#kpiDesmTop');
-
-    const focosTitulo = document.querySelector('#focosTitulo');
-    const focosInfo   = document.querySelector('#focosInfo');
-    const focosBadge  = document.querySelector('#focosBadge');
-    const kpiFocosTop = document.querySelector('#kpiFocosTop');
-
-    // Resultado (corrigidos para os IDs do HTML)
-    const nivelPill = document.querySelector('#nivelPill');
-    const metaBox   = document.querySelector('#metaBox');
-
-    // ====== MAPA =============================================================
-    const map = L.map('map').setView([-3.1, -60.0], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18, attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-    let focosLayer = L.layerGroup().addTo(map);
-
-    // --- NOVO: Foco da cidade (mesmo sem focos de incêndio) ---
-    let cityMarker = null;
-    function focusMapOnCity(mapInstance, coords, opts = {}) {
-      if (!mapInstance || !coords || coords.lat == null || coords.lon == null) return;
-      const zoom = opts.zoom ?? 11; // ajuste fino: 10–12 costuma ficar bom
-      const latlng = [coords.lat, coords.lon];
-
-      if (typeof mapInstance.flyTo === "function") {
-        mapInstance.flyTo(latlng, zoom, { animate: true, duration: 0.8 });
-      } else {
-        mapInstance.setView(latlng, zoom);
-      }
-
-      try {
-        if (cityMarker) {
-          mapInstance.removeLayer(cityMarker);
-          cityMarker = null;
-        }
-        cityMarker = L.circleMarker(latlng, {
-          radius: 7,
-          weight: 2,
-          opacity: 0.9,
-          fillOpacity: 0.2
-        }).addTo(mapInstance);
-      } catch (_) {}
-    }
-
-    // ====== GRÁFICO ==========================================================
-    const riscoCtx = document.getElementById('riscoHistorico').getContext('2d');
-    const riscoChart = new Chart(riscoCtx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [{ label: 'Score', data: [], borderColor: 'rgb(16, 185, 129)', tension: 0.3, pointRadius: 4 }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: { y: { min: 0, max: 1 } },
-        plugins: { legend: { display: false } }
-      }
-    });
-
-    // ====== HELPERS (únicos, consolidados) ===================================
-    function get(obj, path, def = undefined) {
-      try { return path.split('.').reduce((o,k)=> (o && (k in o)) ? o[k] : undefined, obj) ?? def; }
-      catch { return def; }
-    }
-    function num(v, def = null) {
-      const n = (typeof v === 'string' && v.trim() === '') ? NaN : Number(v);
-      return Number.isFinite(n) ? n : def;
-    }
-    function safeNum(n, d = 2) { return (typeof n === "number" && isFinite(n)) ? n.toFixed(d) : "—"; }
-    const clamp01 = (x) => Math.max(0, Math.min(1, x));
-    const setPill = (el, text, classes) => { el.textContent = text; el.className = `pill ${classes}`; };
-
-    function setNivelPill(level, hexColor) {
-      const lv = (level || '').toLowerCase();
-      if (hexColor && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hexColor)) {
-        nivelPill.style.backgroundColor = hexColor;
-        nivelPill.style.color = '#1f2937';
-      } else {
-        nivelPill.style.backgroundColor = '';
-        nivelPill.style.color = '';
-      }
-      let t = '—';
-      if (lv.startsWith('verme')) t = '🔴 VERMELHO';
-      else if (lv.startsWith('ama')) t = '🟡 AMARELO';
-      else if (lv.startsWith('ver')) t = '🟢 VERDE';
-      nivelPill.textContent = t;
-
-      if (!hexColor) {
-        nivelPill.className = 'pill ' + (
-          lv.startsWith('verme') ? 'bg-red-100 text-red-700' :
-          lv.startsWith('ama')   ? 'bg-amber-100 text-amber-800' :
-          lv.startsWith('ver')   ? 'bg-emerald-100 text-emerald-700' :
-                                   'bg-gray-100 text-gray-700'
-        );
-      } else {
-        nivelPill.className = 'pill';
-      }
-    }
-
-    // chuva 24h e índice de cheia do backend (score.breakdown)
-    function getPrecipMM(resp) {
-      const fromBreak = num(get(resp, 'score.breakdown.precip_24h_mm'), null);
-      if (fromBreak !== null) return fromBreak;
-
-      const pm = num(get(resp, 'weather.features.precipitation'), null)
-              ?? num(get(resp, 'weather.current.precipitation'), null);
-      return pm;
-    }
-    function getRainIndex(resp) {
-      const idx = num(get(resp, 'score.breakdown.precip_index'), null);
-      if (idx !== null) return clamp01(idx);
-      const mm = getPrecipMM(resp);
-      if (!Number.isFinite(mm)) return null;
-      const low  = Math.min(1, mm / 10);
-      const high = Math.min(1, Math.max(0, (mm - 70) / 50));
-      return clamp01(Math.max(low, high));
-    }
-    function rainLevel(rainIdx) {
-      if (!Number.isFinite(rainIdx)) return ['Sem dados', 'bg-gray-100 text-gray-700', '—', 'border-gray-200'];
-      if (rainIdx < 0.33) return ['Baixo', 'bg-emerald-100 text-emerald-700', 'OK', 'border-emerald-500'];
-      if (rainIdx < 0.66) return ['Moderado', 'bg-amber-100 text-amber-800', 'Atenção', 'border-amber-500'];
-      return ['Alto', 'bg-red-100 text-red-700', 'Risco de cheia', 'border-red-600'];
-    }
-
-    async function fetchJson(url, opts) {
-      const r = await fetch(url, opts);
-      if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
-      return r.json();
-    }
-
-    // ====== FOCOS & KPI DESMATAMENTO ========================================
-    async function carregarFocos(params) {
-      focosLayer.clearLayers();
-      const qs = new URLSearchParams({ scope: "diario", region: "Brasil", limit: 300, ...params }).toString();
-      const data = await fetchJson(`${API}/api/inpe/focos?${qs}`);
-      const focos = (data.features && data.features.focos) || [];
-
-      const frps = [];
-      focos.forEach(f => {
-        if (Number.isFinite(+f.frp)) frps.push(+f.frp);
-        const m = L.circleMarker([f.latitude, f.longitude], {
-          radius: Math.max(3, Math.min(12, (f.frp || 1) / 8)),
-          color: '#b91c1c', weight: 1, fillOpacity: 0.75
-        }).bindPopup(`
-          <div><strong>${f.municipio || ''} - ${f.uf || ''}</strong></div>
-          <div>Satélite: ${f.satelite || '-'}</div>
-          <div>FRP: ${f.frp ?? '-'}</div>
-          <div>Bioma: ${f.bioma || '-'}</div>
-        `);
-        m.addTo(focosLayer);
-      });
-
-      if (focos.length) {
-        const bounds = L.latLngBounds(focos.map(f => [f.latitude, f.longitude]));
-        map.fitBounds(bounds.pad(0.2));
-      }
-
-      // KPI Focos
-      const levelTxt = focos.length ? (focos.length >= 150 ? 'Crítico' : focos.length >= 50 ? 'Alerta' : 'Baixo') : 'Baixo';
-      focosTitulo.textContent = levelTxt;
-      focosInfo.textContent   = `Focos: ${focos.length}`;
-      const focosClass = (focos.length >= 150) ? 'bg-red-100 text-red-700' : (focos.length >= 50) ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700';
-      setPill(focosBadge, levelTxt, focosClass);
-      kpiFocosTop.className = 'border-b-4 rounded-t-xl ' + ((focos.length >= 150) ? 'border-red-600' : (focos.length >= 50) ? 'border-amber-500' : 'border-emerald-500');
-
-      // KPI Desmatamento (proxy por FRP médio)
-      const avgFRP = frps.length ? (frps.reduce((a,b)=>a+b,0)/frps.length) : 0;
-      let desmLevel = 'Baixo', desmClass = 'bg-emerald-100 text-emerald-700', desmTop = 'border-emerald-500';
-      if (avgFRP >= 7) { desmLevel = 'Alto'; desmClass = 'bg-red-100 text-red-700'; desmTop = 'border-red-600'; }
-      else if (avgFRP >= 3) { desmLevel = 'Moderado'; desmClass = 'bg-amber-100 text-amber-800'; desmTop = 'border-amber-500'; }
-      desmTitulo.textContent = desmLevel;
-      desmInfo.textContent   = `FRP médio: ${avgFRP ? avgFRP.toFixed(1) : '—'}`;
-      setPill(desmBadge, desmLevel, desmClass);
-      kpiDesmTop.className = 'border-b-4 rounded-t-xl ' + desmTop;
-
-      return { count: focos.length, avgFRP };
-    }
-
-    // ====== ÚLTIMOS ALERTAS ==================================================
-    async function carregarUltimosAlertas() {
-      const box = document.getElementById('alertasBox');
-      try {
-        const data = await fetchJson(`${API}/api/alertas?limit=5`);
-        box.textContent = JSON.stringify(data, null, 2);
-      } catch (e) {
-        box.textContent = `Erro ao carregar alertas: ${e.message}`;
-      }
-    }
-
-    // ====== EXECUÇÃO PRINCIPAL ==============================================
-    function getParamsFromUI() {
-      const cidade = elCidade.value.trim();
-      const lat = num(elLat.value, null);
-      const lon = num(elLon.value, null);
-      if (cidade) return { cidade };
-      if (lat === null || lon === null) throw new Error("Informe a cidade **ou** latitude/longitude válidos.");
-      return { lat, lon };
-    }
-    function extractCoords(resp, fallback) {
-      if (get(resp, 'params.lat') && get(resp, 'params.lon')) return { lat: resp.params.lat, lon: resp.params.lon };
-      if (get(resp, 'lat') && get(resp, 'lon')) return { lat: resp.lat, lon: resp.lon };
-      if (get(resp, 'params.resolve.lat') && get(resp, 'params.resolve.lon')) return { lat: resp.params.resolve.lat, lon: resp.params.resolve.lon };
-      return fallback;
-    }
-    function setLoading(on) { btnGo.disabled = on; }
-
-    async function executar() {
-      setLoading(true);
-      const resumoBox = document.getElementById('resumoBox');
-      resumoBox.className = 'whitespace-pre-wrap text-sm mt-3 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-700';
-      try {
-        const uiParams = getParamsFromUI();
-        resumoBox.textContent = "Processando análise...";
-
-        // 1) Pipeline principal
-        const data = await fetchJson(`${API}/api/alertas_update`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...uiParams,
-            scope: "diario",
-            region: "Brasil",
-            raio_km: 150,
-            air_radius_m: 10000,
-            weather_provider: "open-meteo"
-          })
-        });
-
-        // 2) KPI ÁGUA (robusto)
-        const mm  = getPrecipMM(data);
-        const rix = getRainIndex(data);
-        const [lvlTxt, lvlClass, badgeTxt, topClass] = rainLevel(rix);
-        aguaTitulo.textContent = lvlTxt;
-        aguaInfo.textContent   = Number.isFinite(mm) ? `Chuva 24h: ${mm.toFixed(1)} mm` : 'Sem dados';
-        setPill(aguaBadge, badgeTxt, lvlClass);
-        kpiAguaTop.className = 'border-b-4 rounded-t-xl ' + topClass;
-
-        // 3) KPI AR (PM2.5) — usa 'air_status' do backend quando não houver estação próxima
-        const airStatus = get(data, 'score.air_status') || get(data, 'air_status');
-        const pm25 = num(get(data, 'air.features.pm25'), null) ?? num(get(data, 'air.pm25'), null);
-        if (airStatus === 'sem_estacao') {
-          arTitulo.textContent = '—';
-          arInfo.textContent   = 'Sem estação próxima';
-          setPill(arBadge, '—', 'bg-gray-100 text-gray-700');
-          kpiArTop.className = 'border-b-4 rounded-t-xl border-gray-300';
-        } else if (Number.isFinite(pm25)) {
-          const status = (pm25 < 12) ? 'Bom' : (pm25 < 35) ? 'Moderado' : 'Ruim';
-          arTitulo.textContent = status;
-          arInfo.textContent   = `PM2.5: ${safeNum(pm25,1)} µg/m³`;
-          const c = (pm25 < 12) ? 'bg-emerald-100 text-emerald-700' : (pm25 < 35) ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700';
-          setPill(arBadge, status, c);
-          kpiArTop.className = 'border-b-4 rounded-t-xl ' + ((pm25 < 12) ? 'border-emerald-500' : (pm25 < 35) ? 'border-amber-500' : 'border-red-600');
-        } else {
-          arTitulo.textContent = '—';
-          arInfo.textContent   = 'Sem dados';
-          setPill(arBadge, '—', 'bg-gray-100 text-gray-700');
-          kpiArTop.className = 'border-b-4 rounded-t-xl border-gray-300';
-        }
-
-        // 4) Resultado da análise (usa cor do backend se vier)
-        const level   = get(data, 'score.level', 'N/A');
-        const lvColor = get(data, 'score.level_color') || get(data, 'color'); // compat
-        setNivelPill(level, lvColor);
-
-        const resolved = get(data, 'params.resolve.display_name') || get(data, 'params.cidade') || elCidade.value.trim() || '—';
-        const when = get(data, 'score.alert_obs.meta.observed_at') || get(data, 'observed_at') || '—';
-        metaBox.innerHTML = `Local: <strong>${resolved}</strong> • Última observação: <strong>${when}</strong>`;
-
-        // Render tolerante (sem quebrar UI se algo faltar)
-        try { renderAnalysis(data); } catch(e){ console.error(e); }
-        try { renderWater(data);   } catch(e){ console.error(e); }
-
-        // 5) NOVO: centraliza o mapa na cidade SEMPRE
-        const coords = extractCoords(data, uiParams);
-        focusMapOnCity(map, coords, { zoom: 11 });
-
-        // 6) Focos + Desmatamento proxy (se houver focos, o fitBounds do carregarFocos prevalece)
-        const resFocos = await carregarFocos(coords);
-
-        resumoBox.classList.add('text-emerald-700', 'font-semibold');
-        resumoBox.textContent =
-          `Focos plotados: ${resFocos.count}\nFonte: INPE (CSV)\nParams: ${JSON.stringify(coords, null, 2)}`;
-
-        const s = Number(get(data, 'score.score', NaN));
-
-        // 7) Histórico (anexa ponto)
-        const ts = new Date().toLocaleString('pt-BR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
-        if (Number.isFinite(s)) {
-          riscoChart.data.labels.push(ts);
-          riscoChart.data.datasets[0].data.push(s);
-          if (riscoChart.data.labels.length > 20) {
-            riscoChart.data.labels.shift();
-            riscoChart.data.datasets[0].data.shift();
-          }
-          riscoChart.update();
-        }
-
-        // 8) Últimos alertas
-        await carregarUltimosAlertas();
-
-      } catch (err) {
-        resumoBox.classList.add('text-red-700', 'font-semibold');
-        resumoBox.textContent = `Erro: ${err.message}`;
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    // ====== EVENTS / INIT ====================================================
-    document.getElementById('btnGo').addEventListener('click', executar);
-    document.getElementById('cidade').addEventListener('keydown', (e) => { if (e.key === 'Enter') executar(); });
-    carregarUltimosAlertas();
-
-    // ================= Resultado da análise (tolerante) ======================
-    function pickEl(...ids) {
-      for (const id of ids) {
-        const el = document.getElementById(id);
-        if (el) return el;
-      }
-      return null;
-    }
-
-    function renderAnalysis(api){
-      try{
-        const $score = pickEl("scoreValue");
-        const $sev   = pickEl("sevValue");
-        const $dur   = pickEl("durValue");
-        const $freq  = pickEl("freqValue");
-        const $imp   = pickEl("impValue");
-        const $note  = pickEl("analysisNote");
-        const $resumo= pickEl("resumoBox");
-
-        if (!$score || !$sev || !$dur || !$freq || !$imp) return;
-
-        if ($note) $note.textContent = api?.errors?.alert_score ? "Erro no cálculo (backend)" : "";
-
-        const scNum = (typeof api?.score?.score === "number") ? api.score.score : null;
-        const bd    = api?.score?.breakdown || api?.breakdown || api?.alert_obs || api?.score?.alert_obs || null;
-
-        function fb(a){
-          const pm25 = Number(a?.air?.pm25) || 0;
-          const foc  = Number(a?.focos?.count) || 0;
-          const frp  = Number(a?.frp_mean ?? a?.desmatamento?.frp_mean ?? 0);
-          return {
-            severity:  Math.min(1, pm25/75),
-            duration:  0,
-            frequency: Math.min(1, foc/150),
-            impact:    Math.min(1, frp/50),
-          };
-        }
-        const breakdown = bd || fb(api);
-        const scoreObj  = (scNum !== null) ? {score: scNum}
-                        : {score: (breakdown.severity + breakdown.duration + breakdown.frequency + breakdown.impact)/4};
-
-        $score.textContent = safeNum(scoreObj.score, 2);
-        $sev.textContent   = safeNum(breakdown.severity, 2);
-        $dur.textContent   = safeNum(breakdown.duration, 2);
-        $freq.textContent  = safeNum(breakdown.frequency, 2);
-        $imp.textContent   = safeNum(breakdown.impact, 2);
-
-        if ($resumo){
-          $resumo.classList.add('text-emerald-700','font-semibold');
-          $resumo.textContent =
-            `Score: ${safeNum(scoreObj.score,2)}\n` +
-            `Severity: ${safeNum(breakdown.severity,2)} • Duration: ${safeNum(breakdown.duration,2)}\n` +
-            `Frequency: ${safeNum(breakdown.frequency,2)} • Impact: ${safeNum(breakdown.impact,2)}`;
-        }
-      }catch(err){ console.error("[renderAnalysis] erro:", err); }
-    }
-
-    // ================= KPI Água — consistente com breakdown ==================
-    function renderWater(api){
-      try{
-        const mm  = getPrecipMM(api);
-        const rix = getRainIndex(api);
-        const [lvlTxt, lvlClass, badgeTxt, topClass] = rainLevel(rix);
-
-        // Título / Info / Badge
-        aguaTitulo.textContent = Number.isFinite(mm) ? `${mm.toFixed(1)} mm` : lvlTxt;
-        aguaInfo.textContent   = Number.isFinite(mm) ? `Chuva 24h: ${mm.toFixed(1)} mm` : 'Sem dados';
-        setPill(aguaBadge, badgeTxt, lvlClass);
-        kpiAguaTop.className = 'border-b-4 rounded-t-xl ' + topClass;
-      }catch(e){ console.error("[renderWater] erro:", e); }
-    }
-  </script>
-  <script>
-    // Mantém o backend do AmazonSafe acordado
-    function keepAlive() {
-        fetch("https://amazonsafe-api.onrender.com/health")
-            .then(() => console.log("keep-alive ping"))
-            .catch(() => {});
-    }
-
-    // Ativa a cada 4 minutos (Render dorme com ~10)
-    setInterval(keepAlive, 4 * 60 * 1000);
-
-    // Dá um ping logo ao carregar a página
-    keepAlive();
-</script>
 </body>
 </html>
