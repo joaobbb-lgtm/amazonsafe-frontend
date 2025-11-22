@@ -1,286 +1,253 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AmazonSafe – Monitoramento Ambiental</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AmazonSafe – Monitor Ambiental</title>
 
     <!-- FAVICON -->
-    <link rel="icon" type="image/svg+xml" href="assets/logo2.svg">
+    <link rel="icon" type="image/svg+xml" href="./assets/logo2.svg">
 
-    <!-- Leaflet MAP -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- FONTES -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Fonte -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- LEAFLET CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
     <style>
         body {
             margin: 0;
-            padding: 0;
-            background: #0f172a;
+            background-color: #0b1622;
+            color: white;
             font-family: "Inter", sans-serif;
-            color: #e2e8f0;
         }
 
-        h1 {
-            font-size: 26px;
-            font-weight: 700;
-            margin: 0;
-            color: #fff;
-        }
-
-        .header {
-            padding: 15px 25px;
+        header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            background: rgba(255,255,255,0.04);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            gap: 20px;
+            padding: 20px 30px;
+            background: #0e1c2b;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
         }
 
-        .logo {
-            width: 42px;
-            height: 42px;
+        header img {
+            height: 140px; /* <<< 4x MAIOR */
+            width: auto;
+        }
+
+        header h1 {
+            font-size: 38px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        header span {
+            font-size: 15px;
+            opacity: 0.7;
+            margin-top: -8px;
+            display: block;
         }
 
         .container {
+            display: flex;
             padding: 25px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
             gap: 25px;
         }
 
+        .left, .right {
+            flex: 1;
+        }
+
         .card {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.06);
-            border-radius: 12px;
+            background: #112233;
             padding: 20px;
+            border-radius: 14px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .title {
-            font-size: 18px;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        input, button {
-            font-size: 16px;
-            padding: 10px;
-            border-radius: 8px;
-            border: none;
+        .card h2 {
+            margin-top: 0;
+            font-size: 20px;
+            margin-bottom: 15px;
         }
 
         input {
             width: 100%;
-            background: #1e293b;
+            padding: 13px;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+            background: #1b2d41;
             color: white;
-            border: 1px solid #334155;
+            font-size: 16px;
         }
 
         button {
-            margin-top: 8px;
             width: 100%;
-            background: #10b981;
-            color: white;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #0ecc5a;
+            color: black;
+            font-size: 17px;
+            font-weight: 700;
             cursor: pointer;
-            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #11dd66;
         }
 
         #map {
-            width: 100%;
-            height: 350px;
+            height: 400px;
             border-radius: 12px;
-            margin-top: 15px;
+            overflow: hidden;
         }
 
-        .status {
-            margin-top: 15px;
+        .value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #00eaff;
         }
 
-        .risk-badge {
-            padding: 6px 12px;
-            border-radius: 12px;
+        .status-online {
+            padding: 7px 14px;
+            background: #00cc55;
+            border-radius: 8px;
             font-weight: 600;
             display: inline-block;
+            color: black;
         }
-
-        .green { background: #065f46; color: #a7f3d0; }
-        .yellow { background: #854d0e; color: #fef08a; }
-        .red { background: #7f1d1d; color: #fecaca; }
     </style>
 </head>
 
 <body>
 
-    <div class="header">
-        <img src="assets/logo2.svg" class="logo">
-        <h1>AmazonSafe</h1>
-    </div>
+    <header>
+        <img src="./assets/logo.png" alt="AmazonSafe Logo">
+        <div>
+            <h1>AmazonSafe</h1>
+            <span>Monitor ambiental em tempo real</span>
+        </div>
+        <div style="margin-left:auto;" id="statusBox"></div>
+    </header>
 
     <div class="container">
 
-        <!-- ====================== -->
-        <!--     Coluna Esquerda    -->
-        <!-- ====================== -->
-        <div>
-
+        <!-- LEFT SIDE -->
+        <div class="left">
             <div class="card">
-                <div class="title">Selecione uma Cidade</div>
-                <input id="cidadeInput" placeholder="Ex: Belém, Manaus, Marabá...">
+                <h2>Selecione uma Cidade</h2>
+                <input id="cidade" placeholder="Ex: Belém, PA" />
                 <button onclick="buscar()">Buscar Dados</button>
             </div>
 
             <div class="card">
-                <div class="title">Mapa</div>
+                <h2>Mapa</h2>
                 <div id="map"></div>
             </div>
-
         </div>
 
-        <!-- ====================== -->
-        <!--     Coluna Direita     -->
-        <!-- ====================== -->
-        <div>
+        <!-- RIGHT SIDE -->
+        <div class="right">
 
             <div class="card">
-                <div class="title">Clima</div>
-                <div id="clima"></div>
+                <h2>Clima</h2>
+                <div class="value" id="climaTemp">-- °C</div>
+                <div id="climaInfo"></div>
             </div>
 
             <div class="card">
-                <div class="title">Qualidade do Ar</div>
-                <div id="ar"></div>
+                <h2>Qualidade do Ar</h2>
+                <div class="value" id="aqPM25">-- μg/m³</div>
+                <div id="aqInfo"></div>
             </div>
 
             <div class="card">
-                <div class="title">Focos de Calor (INPE)</div>
-                <div id="focos"></div>
+                <h2>Focos de Calor (INPE)</h2>
+                <div class="value" id="focosCount">-- focos</div>
             </div>
 
             <div class="card">
-                <div class="title">Risco Ambiental (Modelo v10)</div>
-                <div id="risco"></div>
+                <h2>Risco Ambiental (Modelo v10)</h2>
+                <div class="value" id="risco">--</div>
             </div>
 
             <div class="card">
-                <div class="title">Status do Backend</div>
-                <div id="backend"></div>
+                <h2>Status do Backend</h2>
+                <div id="backendStatus">Checando...</div>
             </div>
 
         </div>
 
     </div>
 
-<script>
-    const API_BASE = "https://amazonsafe-api.onrender.com";
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    let map = L.map('map').setView([-1.45, -48.48], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: "© OpenStreetMap"
-    }).addTo(map);
+    <script>
+        const API = "https://amazonsafe-api.onrender.com";
 
-    let marker;
-    let focusLayer = L.layerGroup().addTo(map);
+        // MAPA
+        let map = L.map("map").setView([-1.455, -48.490], 8);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+        let marker = L.marker([-1.455, -48.490]).addTo(map);
 
-    async function buscar() {
-        const cidade = document.getElementById("cidadeInput").value;
+        // HEALTHCHECK AUTOMÁTICO
+        async function checkHealth() {
+            try {
+                let r = await fetch(`${API}/health`);
+                let js = await r.json();
 
-        if (!cidade) {
-            alert("Digite uma cidade");
-            return;
+                document.getElementById("statusBox").innerHTML =
+                    `<div class="status-online">● API Online</div>`;
+                document.getElementById("backendStatus").innerHTML =
+                    `<b>Online</b><br>Base: ${API}`;
+
+            } catch {
+                document.getElementById("statusBox").innerHTML =
+                    `<div class="status-online" style="background:#cc0000;color:white;">● Offline</div>`;
+                document.getElementById("backendStatus").innerHTML =
+                    `<b>Offline</b>`;
+            }
         }
+        checkHealth();
 
-        // =============================
-        // CHAMADA AO BACKEND /v2/data
-        // =============================
-        const url = `${API_BASE}/v2/data?city=${encodeURIComponent(cidade)}`;
-        const resp = await fetch(url);
-        const data = await resp.json();
+        async function buscar() {
+            const cidade = document.getElementById("cidade").value.trim();
+            if (!cidade) return alert("Digite uma cidade!");
 
-        if (!data || !data.location) {
-            alert("Cidade não encontrada.");
-            return;
+            try {
+                const resp = await fetch(`${API}/api/data?cidade=${cidade}`);
+                if (!resp.ok) throw new Error();
+                const js = await resp.json();
+
+                // Atualiza dados
+                document.getElementById("climaTemp").innerText = js.clima.temp + "°C";
+
+                document.getElementById("climaInfo").innerHTML =
+                    `Umidade: ${js.clima.umidade}% • Vento: ${js.clima.vento} m/s`;
+
+                document.getElementById("aqPM25").innerText = js.ar.pm25 + " μg/m³";
+
+                document.getElementById("focosCount").innerText = js.focos.total + " focos";
+
+                document.getElementById("risco").innerText = js.risco.score;
+
+                // Mapa
+                map.setView([js.location.lat, js.location.lon], 10);
+                marker.setLatLng([js.location.lat, js.location.lon]);
+
+            } catch (e) {
+                alert("Cidade não encontrada.");
+            }
         }
-
-        // Atualiza mapa
-        const lat = data.location.lat;
-        const lon = data.location.lon;
-
-        if (marker) map.removeLayer(marker);
-        marker = L.marker([lat, lon]).addTo(map);
-        map.setView([lat, lon], 9);
-
-        // Marca focos
-        focusLayer.clearLayers();
-        data.focos.lista.forEach(f => {
-            L.circleMarker([f.lat, f.lon], {
-                radius: 5,
-                color: "red",
-                fillColor: "red",
-                fillOpacity: 0.8
-            }).addTo(focusLayer);
-        });
-
-        // =============================
-        // CHAMADA AO MODELO v10
-        // =============================
-
-        const entrada = {
-            chuva_mm: data.clima.chuva24h || 0,
-            pm25: data.ar.pm25 || 0,
-            pm10: data.ar.pm10 || 0,
-            vento_m_s: data.clima.vento || 0,
-            frp: data.focos.frp_medio || 0,
-            focos: data.focos.total || 0
-        };
-
-        const respAI = await fetch(`${API_BASE}/ai/predict`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(entrada)
-        });
-
-        let riscoAI = await respAI.json();
-
-        // =============================
-        // Preenche os cards
-        // =============================
-        document.getElementById("clima").innerHTML = `
-            🌡️ Temp: <b>${data.clima.temp}°C</b><br>
-            💧 Umidade: <b>${data.clima.umidade}%</b><br>
-            ☔ Chuva 24h: <b>${data.clima.chuva24h} mm</b><br>
-            💨 Vento: <b>${data.clima.vento} m/s</b>
-        `;
-
-        document.getElementById("ar").innerHTML = `
-            PM2.5: <b>${data.ar.pm25} µg/m³</b><br>
-            PM10:  <b>${data.ar.pm10} µg/m³</b><br>
-            Estação: <b>${data.ar.estacao}</b>
-        `;
-
-        document.getElementById("focos").innerHTML = `
-            Total: <b>${data.focos.total}</b> focos<br>
-            FRP médio: <b>${data.focos.frp_medio}</b><br>
-            Últimos focos marcados no mapa.
-        `;
-
-        const cor = riscoAI.label === "Verde" ? "green" :
-                    riscoAI.label === "Amarelo" ? "yellow" : "red";
-
-        document.getElementById("risco").innerHTML = `
-            <span class="risk-badge ${cor}">${riscoAI.label}</span>
-            <br><br>
-            Score: <b>${riscoAI.score}</b> / 100
-        `;
-
-        document.getElementById("backend").innerHTML = `
-            API Base: ${API_BASE}<br>
-            Status: <b>OK</b>
-        `;
-    }
-</script>
+    </script>
 
 </body>
+
 </html>
