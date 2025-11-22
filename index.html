@@ -1,1068 +1,286 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <title>AmazonSafe – Monitor Ambiental</title>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AmazonSafe – Monitoramento Ambiental</title>
 
-    <!-- Favicon usando o logo2.svg -->
-    <link
-      rel="icon"
-      type="image/svg+xml"
-      href="assets/logo2.svg"
-    />
+    <!-- FAVICON -->
+    <link rel="icon" type="image/svg+xml" href="assets/logo2.svg">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="AmazonSafe – Monitor ambiental com clima, qualidade do ar, focos de calor e risco ambiental inteligente."
-    />
-
-    <!-- Leaflet (mapa) -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet/dist/leaflet.css"
-    />
+    <!-- Leaflet MAP -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-    <!-- React via CDN -->
-    <script
-      crossorigin
-      src="https://unpkg.com/react@18/umd/react.development.js"
-    ></script>
-    <script
-      crossorigin
-      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
-    ></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Fonte -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 
-    <!-- Estilo básico -->
     <style>
-      :root {
-        --bg-body: #020617;
-        --bg-card: #020617;
-        --bg-elevated: #020617;
-        --border-subtle: #1e293b;
-        --accent: #22c55e;
-        --accent-soft: #22c55e22;
-        --accent-warning: #eab308;
-        --accent-danger: #ef4444;
-        --text-main: #e5e7eb;
-        --text-muted: #9ca3af;
-        --chip-bg: #020617;
-      }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        margin: 0;
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
-        background: radial-gradient(circle at top, #0f172a 0, #020617 55%);
-        color: var(--text-main);
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-      }
-
-      .app-container {
-        width: 100%;
-        max-width: 1200px;
-        padding: 16px;
-      }
-
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        margin-bottom: 20px;
-      }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .brand-logo {
-        width: 44px;
-        height: 44px;
-        border-radius: 999px;
-        background: #0f172a;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 6px;
-        border: 1px solid #1e293b;
-      }
-
-      .brand-logo img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-      }
-
-      .brand-text-title {
-        font-size: 20px;
-        font-weight: 600;
-        letter-spacing: 0.03em;
-        display: flex;
-        align-items: baseline;
-        gap: 4px;
-      }
-
-      .brand-text-title span:nth-child(2) {
-        color: #22c55e;
-      }
-
-      .brand-subtitle {
-        font-size: 12px;
-        color: var(--text-muted);
-      }
-
-      .status-chip {
-        font-size: 11px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: var(--chip-bg);
-        color: var(--text-muted);
-        border: 1px solid var(--border-subtle);
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .status-dot {
-        width: 7px;
-        height: 7px;
-        border-radius: 999px;
-        background: #f97316;
-      }
-
-      .status-dot.ok {
-        background: #22c55e;
-      }
-
-      main {
-        display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(0, 2fr);
-        gap: 16px;
-      }
-
-      @media (max-width: 900px) {
-        main {
-          grid-template-columns: minmax(0, 1fr);
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0f172a;
+            font-family: "Inter", sans-serif;
+            color: #e2e8f0;
         }
-      }
 
-      .card {
-        background: radial-gradient(circle at top left, #020617, #020617 50%);
-        border-radius: 16px;
-        padding: 16px;
-        border: 1px solid var(--border-subtle);
-        box-shadow: 0 18px 25px rgba(0, 0, 0, 0.35);
-      }
-
-      .card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-      }
-
-      .card-title {
-        font-size: 14px;
-        font-weight: 600;
-      }
-
-      .card-subtitle {
-        font-size: 12px;
-        color: var(--text-muted);
-        margin-top: 2px;
-      }
-
-      .small-pill {
-        font-size: 10px;
-        padding: 3px 8px;
-        border-radius: 999px;
-        border: 1px solid var(--border-subtle);
-        color: var(--text-muted);
-      }
-
-      label {
-        display: block;
-        font-size: 12px;
-        margin-bottom: 4px;
-        color: var(--text-muted);
-      }
-
-      input[type="text"] {
-        width: 100%;
-        background: #020617;
-        border-radius: 999px;
-        border: 1px solid #1f2937;
-        color: var(--text-main);
-        padding: 8px 12px;
-        font-size: 13px;
-        outline: none;
-      }
-
-      input[type="text"]:focus {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 1px #22c55e33;
-      }
-
-      .input-row {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 12px;
-      }
-
-      .input-row > div {
-        flex: 1;
-      }
-
-      .btn-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-top: 8px;
-      }
-
-      .btn {
-        border-radius: 999px;
-        border: none;
-        padding: 8px 14px;
-        font-size: 13px;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        transition: transform 0.08s ease, box-shadow 0.08s ease,
-          background-color 0.12s ease;
-        white-space: nowrap;
-      }
-
-      .btn-primary {
-        background: linear-gradient(135deg, #22c55e, #16a34a);
-        color: #020617;
-        box-shadow: 0 10px 20px rgba(34, 197, 94, 0.35);
-      }
-
-      .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 14px 26px rgba(34, 197, 94, 0.45);
-      }
-
-      .btn-secondary {
-        background: #020617;
-        color: var(--text-main);
-        border: 1px solid var(--border-subtle);
-      }
-
-      .btn-secondary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 10px 20px rgba(15, 23, 42, 0.6);
-        border-color: #4b5563;
-      }
-
-      .btn:disabled {
-        opacity: 0.5;
-        cursor: default;
-        transform: none;
-        box-shadow: none;
-      }
-
-      .error {
-        margin-top: 8px;
-        font-size: 12px;
-        color: #fecaca;
-      }
-
-      .muted {
-        color: var(--text-muted);
-        font-size: 12px;
-      }
-
-      .chips-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 8px;
-      }
-
-      .chip {
-        font-size: 11px;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: #020617;
-        border: 1px solid var(--border-subtle);
-        color: var(--text-muted);
-      }
-
-      .chip strong {
-        color: var(--text-main);
-      }
-
-      .kpis {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-      }
-
-      @media (max-width: 600px) {
-        .kpis {
-          grid-template-columns: minmax(0, 1fr);
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 0;
+            color: #fff;
         }
-      }
 
-      .kpi-card {
-        background: #020617;
-        border-radius: 12px;
-        border: 1px solid #1e293b;
-        padding: 10px 12px;
-      }
+        .header {
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
 
-      .kpi-label {
-        font-size: 11px;
-        color: var(--text-muted);
-        margin-bottom: 3px;
-      }
+        .logo {
+            width: 42px;
+            height: 42px;
+        }
 
-      .kpi-value {
-        font-size: 17px;
-        font-weight: 600;
-      }
+        .container {
+            padding: 25px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
 
-      .kpi-unit {
-        font-size: 11px;
-        color: var(--text-muted);
-        margin-left: 4px;
-      }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            padding: 20px;
+        }
 
-      .kpi-extra {
-        margin-top: 4px;
-        font-size: 11px;
-        color: var(--text-muted);
-      }
+        .title {
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
 
-      .risk-card {
-        margin-top: 12px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        background: radial-gradient(circle at top left, #0f172a, #020617 55%);
-        border: 1px solid #1e293b;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
+        input, button {
+            font-size: 16px;
+            padding: 10px;
+            border-radius: 8px;
+            border: none;
+        }
 
-      .risk-header-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+        input {
+            width: 100%;
+            background: #1e293b;
+            color: white;
+            border: 1px solid #334155;
+        }
 
-      .risk-badge {
-        padding: 4px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-      }
+        button {
+            margin-top: 8px;
+            width: 100%;
+            background: #10b981;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+        }
 
-      .risk-badge.verde {
-        background: var(--accent-soft);
-        color: var(--accent);
-      }
+        #map {
+            width: 100%;
+            height: 350px;
+            border-radius: 12px;
+            margin-top: 15px;
+        }
 
-      .risk-badge.amarelo {
-        background: rgba(234, 179, 8, 0.2);
-        color: var(--accent-warning);
-      }
+        .status {
+            margin-top: 15px;
+        }
 
-      .risk-badge.vermelho {
-        background: rgba(239, 68, 68, 0.2);
-        color: var(--accent-danger);
-      }
+        .risk-badge {
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
 
-      .risk-score {
-        font-size: 24px;
-        font-weight: 700;
-      }
-
-      .risk-bar-outer {
-        margin-top: 4px;
-        height: 7px;
-        width: 100%;
-        border-radius: 999px;
-        background: #020617;
-        border: 1px solid #1f2937;
-        overflow: hidden;
-      }
-
-      .risk-bar-inner {
-        height: 100%;
-        border-radius: 999px;
-        transition: width 0.25s ease;
-      }
-
-      .risk-details {
-        font-size: 11px;
-        color: var(--text-muted);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .risk-details span {
-        white-space: nowrap;
-      }
-
-      #map {
-        width: 100%;
-        height: 260px;
-        border-radius: 14px;
-        border: 1px solid #1e293b;
-        overflow: hidden;
-        margin-top: 10px;
-      }
-
-      .table-small {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 11px;
-        margin-top: 8px;
-      }
-
-      .table-small th,
-      .table-small td {
-        padding: 4px 6px;
-        border-bottom: 1px solid #111827;
-      }
-
-      .table-small th {
-        text-align: left;
-        font-weight: 500;
-        color: var(--text-muted);
-      }
-
-      .table-small tbody tr:last-child td {
-        border-bottom: none;
-      }
-
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 7px;
-        border-radius: 999px;
-        font-size: 10px;
-        border: 1px solid var(--border-subtle);
-        color: var(--text-muted);
-      }
-
-      footer {
-        margin-top: 14px;
-        font-size: 11px;
-        color: var(--text-muted);
-        text-align: right;
-      }
-
-      footer a {
-        color: #22c55e;
-        text-decoration: none;
-      }
-
-      footer a:hover {
-        text-decoration: underline;
-      }
+        .green { background: #065f46; color: #a7f3d0; }
+        .yellow { background: #854d0e; color: #fef08a; }
+        .red { background: #7f1d1d; color: #fecaca; }
     </style>
-  </head>
+</head>
 
-  <body>
-    <div id="root" class="app-container"></div>
+<body>
 
-    <!-- React App -->
-    <script type="text/babel">
-      const { useState, useEffect, useRef } = React;
+    <div class="header">
+        <img src="assets/logo2.svg" class="logo">
+        <h1>AmazonSafe</h1>
+    </div>
 
-      // ============================
-      // CONFIGURAÇÃO
-      // ============================
-      const API_BASE = "https://amazonsafe-api.onrender.com";
+    <div class="container">
 
-      // ============================
-      // Funções utilitárias
-      // ============================
-      function safeFormat(value, digits = 1) {
-        if (value === null || value === undefined || isNaN(value)) return "--";
-        return Number(value).toFixed(digits);
-      }
+        <!-- ====================== -->
+        <!--     Coluna Esquerda    -->
+        <!-- ====================== -->
+        <div>
 
-      function computeLegacyRisk(weatherFeatures, airFeatures) {
-        const PM25_LIMIT = 35;
-        const PM10_LIMIT = 50;
-        const PRECIP_GOOD_MM = 5.0;
+            <div class="card">
+                <div class="title">Selecione uma Cidade</div>
+                <input id="cidadeInput" placeholder="Ex: Belém, Manaus, Marabá...">
+                <button onclick="buscar()">Buscar Dados</button>
+            </div>
 
-        const WEIGHT_PM25 = 40;
-        const WEIGHT_PM10 = 30;
-        const WEIGHT_DRY = 30;
+            <div class="card">
+                <div class="title">Mapa</div>
+                <div id="map"></div>
+            </div>
 
-        const THRESHOLD_YELLOW = 40;
-        const THRESHOLD_RED = 70;
+        </div>
 
-        const pm25 = (airFeatures && airFeatures.pm25) || 0;
-        const pm10 = (airFeatures && airFeatures.pm10) || 0;
-        const rain =
-          (weatherFeatures && weatherFeatures.precipitation) || 0;
+        <!-- ====================== -->
+        <!--     Coluna Direita     -->
+        <!-- ====================== -->
+        <div>
 
-        let score = 0;
-        if (pm25 >= PM25_LIMIT) score += WEIGHT_PM25;
-        if (pm10 >= PM10_LIMIT) score += WEIGHT_PM10;
-        if (rain <= PRECIP_GOOD_MM) score += WEIGHT_DRY;
+            <div class="card">
+                <div class="title">Clima</div>
+                <div id="clima"></div>
+            </div>
 
-        score = Math.max(0, Math.min(100, Math.round(score)));
+            <div class="card">
+                <div class="title">Qualidade do Ar</div>
+                <div id="ar"></div>
+            </div>
 
-        let level = "Verde";
-        if (score >= THRESHOLD_RED) level = "Vermelho";
-        else if (score >= THRESHOLD_YELLOW) level = "Amarelo";
+            <div class="card">
+                <div class="title">Focos de Calor (INPE)</div>
+                <div id="focos"></div>
+            </div>
 
-        return { score, level, pm25, pm10, rain };
-      }
+            <div class="card">
+                <div class="title">Risco Ambiental (Modelo v10)</div>
+                <div id="risco"></div>
+            </div>
 
-      function riskLevelClass(level) {
-        const l = (level || "").toLowerCase();
-        if (l.startsWith("verm")) return "vermelho";
-        if (l.startsWith("amar")) return "amarelo";
-        return "verde";
-      }
+            <div class="card">
+                <div class="title">Status do Backend</div>
+                <div id="backend"></div>
+            </div>
 
-      // ============================
-      // COMPONENTE PRINCIPAL
-      // ============================
-      function App() {
-        const [apiStatus, setApiStatus] = useState("checking"); // ok | fail | checking
-        const [city, setCity] = useState("");
-        const [loading, setLoading] = useState(false);
-        const [error, setError] = useState("");
-        const [data, setData] = useState(null);
-        const [risk, setRisk] = useState(null);
+        </div>
 
-        const mapContainerRef = useRef(null);
-        const mapInstanceRef = useRef(null);
-        const markerRef = useRef(null);
+    </div>
 
-        // Healthcheck na inicialização
-        useEffect(() => {
-          fetch(API_BASE + "/health")
-            .then((r) => r.json())
-            .then(() => setApiStatus("ok"))
-            .catch(() => setApiStatus("fail"));
-        }, []);
+<script>
+    const API_BASE = "https://amazonsafe-api.onrender.com";
 
-        // Atualiza mapa quando dados mudam
-        useEffect(() => {
-          if (!data || !data.local) return;
-          if (!window.L || !mapContainerRef.current) return;
+    let map = L.map('map').setView([-1.45, -48.48], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: "© OpenStreetMap"
+    }).addTo(map);
 
-          const { lat, lon } = data.local;
-          if (lat == null || lon == null) return;
+    let marker;
+    let focusLayer = L.layerGroup().addTo(map);
 
-          const center = [lat, lon];
+    async function buscar() {
+        const cidade = document.getElementById("cidadeInput").value;
 
-          if (!mapInstanceRef.current) {
-            const map = L.map(mapContainerRef.current, {
-              center,
-              zoom: 6,
-            });
-
-            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-              attribution: "&copy; OpenStreetMap contributors",
-            }).addTo(map);
-
-            mapInstanceRef.current = map;
-          } else {
-            mapInstanceRef.current.setView(center, 7);
-          }
-
-          if (markerRef.current) {
-            markerRef.current.remove();
-          }
-          markerRef.current = L.marker(center).addTo(
-            mapInstanceRef.current
-          );
-        }, [data]);
-
-        async function handleSearch(e) {
-          e && e.preventDefault();
-          setError("");
-          setLoading(true);
-          setRisk(null);
-
-          try {
-            const body = {
-              cidade: city || null,
-              lat: null,
-              lon: null,
-            };
-
-            const resp = await fetch(API_BASE + "/api/data", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
-            });
-
-            if (!resp.ok) {
-              const txt = await resp.text();
-              throw new Error(
-                "Erro ao consultar API (" + resp.status + "): " + txt
-              );
-            }
-
-            const json = await resp.json();
-            setData(json);
-
-            const weatherFeatures =
-              json.clima && json.clima.features
-                ? json.clima.features
-                : {};
-            const airFeatures =
-              json.air_quality && json.air_quality.features
-                ? json.air_quality.features
-                : {};
-
-            const r = computeLegacyRisk(weatherFeatures, airFeatures);
-            setRisk(r);
-          } catch (err) {
-            console.error(err);
-            setError(
-              err.message ||
-                "Erro inesperado ao consultar o backend AmazonSafe."
-            );
-          } finally {
-            setLoading(false);
-          }
+        if (!cidade) {
+            alert("Digite uma cidade");
+            return;
         }
 
-        const local = data?.local || {};
-        const climaFeatures = data?.clima?.features || {};
-        const airFeatures = data?.air_quality?.features || {};
-        const focosInfo = data?.focos || { total: 0, items: [] };
+        // =============================
+        // CHAMADA AO BACKEND /v2/data
+        // =============================
+        const url = `${API_BASE}/v2/data?city=${encodeURIComponent(cidade)}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
 
-        const displayCity =
-          local.display_name ||
-          local.cidade ||
-          (city ? city : "Local padrão");
+        if (!data || !data.location) {
+            alert("Cidade não encontrada.");
+            return;
+        }
 
-        const resolvedBy = local.resolved_by || "default";
+        // Atualiza mapa
+        const lat = data.location.lat;
+        const lon = data.location.lon;
 
-        const pm25 = airFeatures.pm25;
-        const pm10 = airFeatures.pm10;
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lon]).addTo(map);
+        map.setView([lat, lon], 9);
 
-        return (
-          <>
-            <header>
-              <div className="brand">
-                <div className="brand-logo">
-                  <img src="assets/logo2.svg" alt="AmazonSafe" />
-                </div>
-                <div>
-                  <div className="brand-text-title">
-                    <span>Amazon</span>
-                    <span>Safe</span>
-                  </div>
-                  <div className="brand-subtitle">
-                    Monitor ambiental em tempo quase real
-                  </div>
-                </div>
-              </div>
+        // Marca focos
+        focusLayer.clearLayers();
+        data.focos.lista.forEach(f => {
+            L.circleMarker([f.lat, f.lon], {
+                radius: 5,
+                color: "red",
+                fillColor: "red",
+                fillOpacity: 0.8
+            }).addTo(focusLayer);
+        });
 
-              <div>
-                <div className="status-chip">
-                  <span
-                    className={
-                      "status-dot " + (apiStatus === "ok" ? "ok" : "")
-                    }
-                  ></span>
-                  {apiStatus === "checking" && "Verificando API..."}
-                  {apiStatus === "ok" && "API Online"}
-                  {apiStatus === "fail" && "Falha ao conectar API"}
-                </div>
-              </div>
-            </header>
+        // =============================
+        // CHAMADA AO MODELO v10
+        // =============================
 
-            <main>
-              {/* Coluna esquerda: busca + contexto */}
-              <section className="card">
-                <div className="card-header">
-                  <div>
-                    <div className="card-title">
-                      Selecionar Local de Análise
-                    </div>
-                    <div className="card-subtitle">
-                      Busque por cidade (ex.: "Belém, PA") ou use o
-                      local padrão.
-                    </div>
-                  </div>
-                  <span className="small-pill">
-                    Endpoint: <strong>/api/data</strong>
-                  </span>
-                </div>
+        const entrada = {
+            chuva_mm: data.clima.chuva24h || 0,
+            pm25: data.ar.pm25 || 0,
+            pm10: data.ar.pm10 || 0,
+            vento_m_s: data.clima.vento || 0,
+            frp: data.focos.frp_medio || 0,
+            focos: data.focos.total || 0
+        };
 
-                <form onSubmit={handleSearch}>
-                  <div>
-                    <label htmlFor="cidade">Cidade / Município</label>
-                    <input
-                      id="cidade"
-                      type="text"
-                      placeholder="Belém, PA"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                    />
-                  </div>
+        const respAI = await fetch(`${API_BASE}/ai/predict`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(entrada)
+        });
 
-                  <div className="btn-row">
-                    <button
-                      type="submit"
-                      className="btn btn-primary"
-                      disabled={loading || apiStatus !== "ok"}
-                    >
-                      {loading ? "Coletando dados..." : "Buscar dados"}
-                    </button>
+        let riscoAI = await respAI.json();
 
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        setCity("");
-                        setData(null);
-                        setRisk(null);
-                        setError("");
-                      }}
-                    >
-                      Limpar
-                    </button>
-                  </div>
-                </form>
+        // =============================
+        // Preenche os cards
+        // =============================
+        document.getElementById("clima").innerHTML = `
+            🌡️ Temp: <b>${data.clima.temp}°C</b><br>
+            💧 Umidade: <b>${data.clima.umidade}%</b><br>
+            ☔ Chuva 24h: <b>${data.clima.chuva24h} mm</b><br>
+            💨 Vento: <b>${data.clima.vento} m/s</b>
+        `;
 
-                {error && <div className="error">{error}</div>}
+        document.getElementById("ar").innerHTML = `
+            PM2.5: <b>${data.ar.pm25} µg/m³</b><br>
+            PM10:  <b>${data.ar.pm10} µg/m³</b><br>
+            Estação: <b>${data.ar.estacao}</b>
+        `;
 
-                {data && (
-                  <>
-                    <div style={{ marginTop: "14px" }}>
-                      <div className="muted">
-                        Local atual:
-                        <br />
-                        <strong>{displayCity}</strong>
-                      </div>
-                      <div className="chips-row">
-                        <div className="chip">
-                          <strong>Lat:</strong>{" "}
-                          {safeFormat(local.lat, 3)}
-                        </div>
-                        <div className="chip">
-                          <strong>Lon:</strong>{" "}
-                          {safeFormat(local.lon, 3)}
-                        </div>
-                        <div className="chip">
-                          <strong>Resolução:</strong> {resolvedBy}
-                        </div>
-                      </div>
-                    </div>
+        document.getElementById("focos").innerHTML = `
+            Total: <b>${data.focos.total}</b> focos<br>
+            FRP médio: <b>${data.focos.frp_medio}</b><br>
+            Últimos focos marcados no mapa.
+        `;
 
-                    <div id="map" ref={mapContainerRef}></div>
-                  </>
-                )}
-              </section>
+        const cor = riscoAI.label === "Verde" ? "green" :
+                    riscoAI.label === "Amarelo" ? "yellow" : "red";
 
-              {/* Coluna direita: clima, ar, focos, risco */}
-              <section className="card">
-                <div className="card-header">
-                  <div>
-                    <div className="card-title">
-                      Painel Ambiental Integrado
-                    </div>
-                    <div className="card-subtitle">
-                      Clima, qualidade do ar, focos e risco ambiental
-                      legado.
-                    </div>
-                  </div>
-                  <span className="small-pill">
-                    Dados: Open-Meteo, OpenAQ, INPE
-                  </span>
-                </div>
+        document.getElementById("risco").innerHTML = `
+            <span class="risk-badge ${cor}">${riscoAI.label}</span>
+            <br><br>
+            Score: <b>${riscoAI.score}</b> / 100
+        `;
 
-                {!data && (
-                  <p className="muted">
-                    Informe uma cidade e clique em{" "}
-                    <strong>Buscar dados</strong> para visualizar o
-                    painel.
-                  </p>
-                )}
+        document.getElementById("backend").innerHTML = `
+            API Base: ${API_BASE}<br>
+            Status: <b>OK</b>
+        `;
+    }
+</script>
 
-                {data && (
-                  <>
-                    <div className="kpis">
-                      {/* Clima */}
-                      <div className="kpi-card">
-                        <div className="kpi-label">Clima (Open-Meteo)</div>
-                        <div className="kpi-value">
-                          {safeFormat(
-                            climaFeatures.temperature_2m,
-                            1
-                          )}
-                          <span className="kpi-unit">°C</span>
-                        </div>
-                        <div className="kpi-extra">
-                          Umidade:{" "}
-                          <strong>
-                            {safeFormat(
-                              climaFeatures.relative_humidity_2m,
-                              0
-                            )}
-                            %
-                          </strong>{" "}
-                          • Chuva 24h:{" "}
-                          <strong>
-                            {safeFormat(
-                              climaFeatures.precipitation,
-                              1
-                            )}{" "}
-                            mm
-                          </strong>{" "}
-                          • Vento:{" "}
-                          <strong>
-                            {safeFormat(
-                              climaFeatures.wind_speed_10m,
-                              1
-                            )}{" "}
-                            m/s
-                          </strong>
-                        </div>
-                      </div>
-
-                      {/* Qualidade do ar */}
-                      <div className="kpi-card">
-                        <div className="kpi-label">
-                          Qualidade do Ar (OpenAQ)
-                        </div>
-                        <div className="kpi-value">
-                          {safeFormat(pm25, 1)}
-                          <span className="kpi-unit">
-                            µg/m³ (PM2.5)
-                          </span>
-                        </div>
-                        <div className="kpi-extra">
-                          PM10:{" "}
-                          <strong>{safeFormat(pm10, 1)} µg/m³</strong>{" "}
-                          • Estação ID:{" "}
-                          <strong>
-                            {data.air_quality?.location_id ?? "--"}
-                          </strong>
-                        </div>
-                      </div>
-
-                      {/* Focos */}
-                      <div className="kpi-card">
-                        <div className="kpi-label">
-                          Focos de calor (INPE)
-                        </div>
-                        <div className="kpi-value">
-                          {focosInfo.total ?? 0}
-                          <span className="kpi-unit"> focos</span>
-                        </div>
-                        <div className="kpi-extra">
-                          Últimos focos próximos ao ponto analisado.
-                        </div>
-                      </div>
-
-                      {/* Health da API */}
-                      <div className="kpi-card">
-                        <div className="kpi-label">
-                          Status do Backend
-                        </div>
-                        <div className="kpi-value">
-                          {apiStatus === "ok"
-                            ? "Online"
-                            : apiStatus === "fail"
-                            ? "Offline"
-                            : "Verificando"}
-                        </div>
-                        <div className="kpi-extra">
-                          Base: <code>{API_BASE}</code>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Risco legado */}
-                    {risk && (
-                      <div className="risk-card">
-                        <div className="risk-header-row">
-                          <div>
-                            <div className="kpi-label">
-                              Risco Ambiental (Modelo legado –
-                              PM/Chuva)
-                            </div>
-                            <div className="risk-score">
-                              {risk.score}
-                              <span
-                                style={{
-                                  fontSize: "12px",
-                                  marginLeft: "4px",
-                                  color: "#9ca3af",
-                                }}
-                              >
-                                / 100
-                              </span>
-                            </div>
-                          </div>
-                          <div
-                            className={
-                              "risk-badge " +
-                              riskLevelClass(risk.level)
-                            }
-                          >
-                            <span
-                              style={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: 999,
-                                background:
-                                  riskLevelClass(risk.level) ===
-                                  "vermelho"
-                                    ? "#ef4444"
-                                    : riskLevelClass(risk.level) ===
-                                      "amarelo"
-                                    ? "#eab308"
-                                    : "#22c55e",
-                              }}
-                            ></span>
-                            <span>{risk.level}</span>
-                          </div>
-                        </div>
-
-                        <div className="risk-bar-outer">
-                          <div
-                            className="risk-bar-inner"
-                            style={{
-                              width: risk.score + "%",
-                              background:
-                                riskLevelClass(risk.level) ===
-                                "vermelho"
-                                  ? "#ef4444"
-                                  : riskLevelClass(risk.level) ===
-                                    "amarelo"
-                                  ? "#eab308"
-                                  : "#22c55e",
-                            }}
-                          ></div>
-                        </div>
-
-                        <div className="risk-details">
-                          <span>
-                            PM2.5:{" "}
-                            <strong>
-                              {safeFormat(risk.pm25, 1)} µg/m³
-                            </strong>
-                          </span>
-                          <span>
-                            PM10:{" "}
-                            <strong>
-                              {safeFormat(risk.pm10, 1)} µg/m³
-                            </strong>
-                          </span>
-                          <span>
-                            Chuva 24h:{" "}
-                            <strong>
-                              {safeFormat(risk.rain, 1)} mm
-                            </strong>
-                          </span>
-                          <span>
-                            Limiares: PM2.5 ≥ 35 • PM10 ≥ 50 • Chuva ≤
-                            5 mm
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Tabela de focos (top 5) */}
-                    {focosInfo.items && focosInfo.items.length > 0 && (
-                      <div style={{ marginTop: "10px" }}>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          <div className="kpi-label">
-                            Principais focos próximos (até 5
-                            registros)
-                          </div>
-                          <span className="badge">
-                            Total: {focosInfo.total ?? 0}
-                          </span>
-                        </div>
-                        <table className="table-small">
-                          <thead>
-                            <tr>
-                              <th>Dist.</th>
-                              <th>Município</th>
-                              <th>UF</th>
-                              <th>FRP</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {focosInfo.items.slice(0, 5).map((f, i) => (
-                              <tr key={i}>
-                                <td>
-                                  {f.dist_km != null
-                                    ? f.dist_km.toFixed(1) + " km"
-                                    : "--"}
-                                </td>
-                                <td>{f.municipio || "--"}</td>
-                                <td>{f.uf || "--"}</td>
-                                <td>
-                                  {f.frp != null
-                                    ? f.frp.toFixed(1)
-                                    : "--"}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </>
-                )}
-              </section>
-            </main>
-
-            <footer>
-              Backend:&nbsp;
-              <a
-                href={API_BASE + "/docs"}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Swagger AmazonSafe API
-              </a>
-            </footer>
-          </>
-        );
-      }
-
-      const root = ReactDOM.createRoot(
-        document.getElementById("root")
-      );
-      root.render(<App />);
-    </script>
-  </body>
+</body>
 </html>
